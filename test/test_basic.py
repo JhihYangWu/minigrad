@@ -7,6 +7,7 @@ from minigrad.utils import calc_nc_grad
 x_init = np.random.randn(1, 3).astype(np.float32)
 W_init = np.random.randn(3, 3).astype(np.float32)
 m_init = np.random.randn(1, 3).astype(np.float32)
+Tensor.NEED_PRECISION = True
 
 class TestBasic(unittest.TestCase):
     def test_grads(self):
@@ -43,7 +44,7 @@ class TestBasic(unittest.TestCase):
             np.testing.assert_allclose(x, y, rtol=1e-5)
 
         for x, y in zip(minigrad_output, get_nc_grad()):
-            np.testing.assert_allclose(x, y, rtol=1e-1)
+            np.testing.assert_allclose(x, y, rtol=1e-5)
 
 if __name__ == "__main__":
     unittest.main()

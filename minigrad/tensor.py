@@ -3,6 +3,7 @@ import numpy as np
 
 class Tensor:
     MUTE_FLOAT_WARNING = False
+    NEED_PRECISION = False
 
     def __init__(self, data):
         if isinstance(data, list):

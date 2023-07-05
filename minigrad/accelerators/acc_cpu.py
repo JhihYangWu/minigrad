@@ -1,4 +1,4 @@
-from minigrad.tensor import Function, register
+from minigrad.tensor import Function, register, Tensor
 import numpy as np
 
 class Mul(Function):
@@ -41,12 +41,12 @@ class Sum(Function):
     @staticmethod
     def forward(context, x):
         context.save_for_backward(x)
-        return np.array([x.sum()], dtype=np.float32)
+        return np.array([x.sum()], dtype=get_float_32_64())
 
     @staticmethod
     def backward(context, your_grad):
         x = context.safe[0]
-        return (your_grad * np.ones(x.shape, dtype=np.float32),)
+        return (your_grad * np.ones(x.shape, dtype=get_float_32_64()),)
 register("sum", Sum)
 
 class ReLU(Function):
@@ -88,6 +88,9 @@ class Softmax(Function):
         matrix = ((-s_x.dot(s_x.T)) *
                   (1 - np.eye(l)) +
                   (np.eye(l) * (s_x * (1 - s_x))))
-        return (your_grad.dot(matrix).astype(np.float32),)
+        return (your_grad.dot(matrix).astype(get_float_32_64()),)
 register("softmax", Softmax)
+
+def get_float_32_64():
+    return np.float64 if Tensor.NEED_PRECISION else np.float32 
 

@@ -1,7 +1,7 @@
 from minigrad.tensor import Tensor
 import numpy as np
 
-def calc_nc_grad(tensors, loss_tensor, eps=1e-3):
+def calc_nc_grad(tensors, loss_tensor, eps=1e-6):
     def append_tensor(eval_str, t, i, j, to_append, comp_path, prev_str):
         if to_append is t:
             eval_str.append("t")
@@ -16,7 +16,15 @@ def calc_nc_grad(tensors, loss_tensor, eps=1e-3):
         comp_path = []
         found = _nc_grad_helper(loss_tensor, t, comp_path)
         assert found and comp_path != []
-        
+
+        # Change all the tensors in comp_path to float64 for better precision.
+        for row in comp_path:
+            for ts in row[0]:
+                if ts.data.dtype != np.float64:
+                    ts.data = ts.data.astype(np.float64)
+            if row[2].data.dtype != np.float64:
+                row[2].data = row[2].data.astype(np.float64)
+
         # Find eval string to compute loss from t.
         i = len(comp_path) - 1
         prev_str = None
