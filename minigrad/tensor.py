@@ -57,8 +57,9 @@ class Tensor:
             p.backward(loss_tensor=False)
 
 class Context:
-    def __init__(self, func_applied, *parents):
+    def __init__(self, func_applied, func_name, *parents):
         self.func_applied = func_applied
+        self.func_name = func_name
         self.parents = parents
         self.safe = []
 
@@ -66,15 +67,15 @@ class Context:
         self.safe.extend(x)
 
 class Function:
-    def apply_func(self, func, *x):  # self is the Tensor that the function is applied on.
-        context = Context(func, self, *x)
+    def apply_func(self, func, func_name, *x):  # self is the Tensor that the function is applied on.
+        context = Context(func, func_name, self, *x)
         retval = Tensor(func.forward(context, self.data, *[t.data for t in x]))
         retval._context = context
         return retval
 
 # Load ops into Tensor class.
 def register(name, func):
-    setattr(Tensor, name, partialmethod(func.apply_func, func))
+    setattr(Tensor, name, partialmethod(func.apply_func, func, name))
 
 import minigrad.accelerators.acc_cpu
 
