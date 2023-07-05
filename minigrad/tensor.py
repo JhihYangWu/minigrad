@@ -39,6 +39,11 @@ class Tensor:
     def randn(*shape):
         return Tensor(np.random.randn(*shape).astype(np.float32))
 
+    @staticmethod
+    def rand_init(*shape):
+        vals = np.random.uniform(-1.0, 1.0, size=shape) / np.sqrt(np.prod(shape))
+        return Tensor(vals.astype(np.float32))
+
     def backward(self, loss_tensor=True):
         if self._context is None:
             return  # You are root node, no need to calculate more grads.
