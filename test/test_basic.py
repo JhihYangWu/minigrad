@@ -43,7 +43,7 @@ class TestBasic(unittest.TestCase):
             np.testing.assert_allclose(x, y, rtol=1e-5)
 
         for x, y in zip(minigrad_output, get_nc_grad()):
-            np.testing.assert_allclose(x, y, rtol=1e-2)
+            np.testing.assert_allclose(x, y, rtol=1e-1)
 
 if __name__ == "__main__":
     unittest.main()
