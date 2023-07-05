@@ -75,9 +75,9 @@ register("log2", Log2)
 
 class Softmax(Function):
     @staticmethod
-    def forward(context, x):
+    def forward(context, x, dim):
         s_x = np.exp(x)
-        s_x = s_x / np.sum(s_x)
+        s_x = s_x / np.sum(s_x, axis=dim)
         context.save_for_backward(s_x)
         return s_x
 

@@ -36,9 +36,14 @@ def calc_nc_grad(tensors, loss_tensor, eps=1e-6):
                 if j >= 2:
                     eval_str.append(", ")
                 append_tensor(eval_str, t, i, j, x, comp_path, prev_str)
-            if len(comp_path[i][0]) == 1:
+            unary = len(comp_path[i][0]) == 1
+            if unary:
                 # Unary ops never got chance to add op name to eval_str.
                 eval_str.extend((".", comp_path[i][1], "("))
+            for key in comp_path[i][3]:
+                if not unary:
+                    eval_str.append(", ")
+                eval_str.append(f"{key}={comp_path[i][3][key]}")
             eval_str.append(")")
             eval_str = "".join(eval_str)
             prev_str = eval_str
@@ -62,7 +67,7 @@ def _nc_grad_helper(t, target, comp_path):
     if t._context is None:
         return False
 
-    comp_path.append((t._context.parents, t._context.func_name, t))
+    comp_path.append((t._context.parents, t._context.func_name, t, t._context.func_kwargs))
     found = False
     for p in t._context.parents:
         found = found or _nc_grad_helper(p, target, comp_path)

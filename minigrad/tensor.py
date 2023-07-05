@@ -63,19 +63,20 @@ class Tensor:
             p.backward(loss_tensor=False)
 
 class Context:
-    def __init__(self, func_applied, func_name, *parents):
+    def __init__(self, func_applied, func_name, func_kwargs, *parents):
         self.func_applied = func_applied
         self.func_name = func_name
         self.parents = parents
         self.safe = []
+        self.func_kwargs = func_kwargs
 
     def save_for_backward(self, *x):
         self.safe.extend(x)
 
 class Function:
-    def apply_func(self, func, func_name, *x):  # self is the Tensor that the function is applied on.
-        context = Context(func, func_name, self, *x)
-        retval = Tensor(func.forward(context, self.data, *[t.data for t in x]))
+    def apply_func(self, func, func_name, *x, **kwargs):  # self is the Tensor that the function is applied on.
+        context = Context(func, func_name, kwargs, self, *x)
+        retval = Tensor(func.forward(context, self.data, *[t.data for t in x], **kwargs))
         retval._context = context
         return retval
 
