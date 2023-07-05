@@ -61,3 +61,33 @@ class ReLU(Function):
         return (your_grad * (x >= 0),)
 register("relu", ReLU)
 
+class Log2(Function):
+    @staticmethod
+    def forward(context, x):
+        context.save_for_backward(x)
+        return np.log2(x)
+
+    @staticmethod
+    def backward(context, your_grad):
+        x = context.safe[0]
+        return (your_grad / (x * np.log(2)),)
+register("log2", Log2)
+
+class Softmax(Function):
+    @staticmethod
+    def forward(context, x):
+        s_x = np.exp(x)
+        s_x = s_x / np.sum(s_x)
+        context.save_for_backward(s_x)
+        return s_x
+
+    @staticmethod
+    def backward(context, your_grad):
+        s_x = context.safe[0].T
+        l = s_x.shape[0]
+        matrix = ((-s_x.dot(s_x.T)) *
+                  (1 - np.eye(l)) +
+                  (np.eye(l) * (s_x * (1 - s_x))))
+        return (your_grad.dot(matrix).astype(np.float32),)
+register("softmax", Softmax)
+
