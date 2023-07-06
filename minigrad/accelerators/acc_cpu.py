@@ -77,18 +77,25 @@ class Softmax(Function):
     @staticmethod
     def forward(context, x, dim):
         s_x = np.exp(x)
-        s_x = s_x / np.sum(s_x, axis=dim)
+        s_x = s_x / np.sum(s_x, axis=dim).reshape(-1, 1)
         context.save_for_backward(s_x)
         return s_x
 
     @staticmethod
     def backward(context, your_grad):
-        s_x = context.safe[0].T
-        l = s_x.shape[0]
-        matrix = ((-s_x.dot(s_x.T)) *
-                  (1 - np.eye(l)) +
-                  (np.eye(l) * (s_x * (1 - s_x))))
-        return (your_grad.dot(matrix).astype(get_float_32_64()),)
+        def find_grad_1_dim(s_x, g_s_x):
+            l = s_x.shape[0]
+            matrix = ((-s_x.dot(s_x.T)) *
+                      (1 - np.eye(l)) +
+                      (np.eye(l) * (s_x * (1 - s_x))))
+            return g_s_x.dot(matrix).astype(get_float_32_64())
+        batch_size, num_features = context.safe[0].shape
+        parent_grad = np.zeros((batch_size, num_features), dtype=get_float_32_64())
+        for i in range(batch_size):
+            s_x = context.safe[0][i, :].reshape(1, -1).T
+            g_x = find_grad_1_dim(s_x, your_grad[i, :])
+            parent_grad[i, :] = g_x
+        return (parent_grad,)
 register("softmax", Softmax)
 
 def get_float_32_64():
