@@ -1,5 +1,5 @@
 # minigrad
-Rip-off of tinygrad
+A toy project for me to learn more about the underlying operations of neural networks and various deep learning projects. Just like tinygrad, minigrad is a deep learning framework designed to be simple and easy to add accelerators to.
 
 ---
 ## Setup
