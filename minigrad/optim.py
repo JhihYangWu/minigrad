@@ -64,7 +64,7 @@ def evaluate(x_test, y_test, model, loss_func, batch_size):
     return overall_loss, overall_acc
 
 class SGD:
-    def __init__(self, model_params, lr=0.00001):
+    def __init__(self, model_params, lr=1e-5):
         self.model_params = model_params
         self.lr = lr
 
@@ -73,9 +73,10 @@ class SGD:
             weight_t.data -= self.lr * weight_t.grad.data
 
 class Momentum:
-    def __init__(self, model_params, lr=0.00001, beta=0.9):
+    def __init__(self, model_params, lr=1e-5, beta=0.9):
         # beta=0.9 is moving average of approximately past 10 mini-batches.
-        # Momentum allows you to use higher lr than SGD because exploding pos-neg-pos-neg gradients get averaged out.
+        # Momentum allows you to use higher lr than SGD because exploding
+        # pos-neg-pos-neg gradients get averaged out.
         self.model_params = model_params
         self.lr = lr
         self.beta = beta
@@ -88,4 +89,23 @@ class Momentum:
             new_grad = weight_t.grad.data
             self.v[i] = self.beta * self.v[i] + (1 - self.beta) * new_grad
             weight_t.data -= self.lr * self.v[i]
+
+class RMSprop:
+    def __init__(self, model_params, lr=1e-5, beta2=0.999, eps=1e-8):
+        # RMSprop also allows you to use higher lr than SGD because larger
+        # gradients get larger denominator and smaller gradients get smaller
+        # denominator so same speed every direction.
+        self.model_params = model_params
+        self.lr = lr
+        self.beta2 = beta2
+        self.eps = eps
+
+        self.v2 = [np.zeros_like(weight_t.data) for weight_t in self.model_params]
+
+    def step(self):
+        for i in range(len(self.model_params)):
+            weight_t = self.model_params[i]
+            new_grad = weight_t.grad.data
+            self.v2[i] = self.beta2 * self.v2[i] + (1 - self.beta2) * (new_grad * new_grad)
+            weight_t.data -= self.lr * new_grad / (np.sqrt(self.v2[i]) + self.eps)
 
