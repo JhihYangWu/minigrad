@@ -199,10 +199,9 @@ class Conv2D(Function):
         for i in range(out_shape[2]):
             for j in range(out_shape[3]):
                 for k in range(num_filters):
-                    for b in range(batch_size):
-                        filter = w[k, :, :, :]
-                        chunk = x[b, :, i*stride:i*stride+w_h, j*stride:j*stride+w_w]
-                        out[b, k, i, j] = (chunk * filter).sum()
+                    filter = w[k, :, :, :]
+                    chunk = x[:, :, i*stride:i*stride+w_h, j*stride:j*stride+w_w]
+                    out[:, k, i, j] = (chunk * filter).reshape(batch_size, -1).sum(axis=1)
         return out
 register("conv2d", Conv2D)
 
