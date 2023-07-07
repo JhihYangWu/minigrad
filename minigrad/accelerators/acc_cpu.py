@@ -123,6 +123,19 @@ class Sin(Function):
         return (your_grad * np.cos(x),)
 register("sin", Sin)
 
+class Sqrt(Function):
+    @staticmethod
+    def forward(context, x):
+        sqrt_x = np.sqrt(x)
+        context.save_for_backward(sqrt_x)
+        return sqrt_x
+
+    @staticmethod
+    def backward(context, your_grad):
+        sqrt_x = context.safe[0]
+        return (your_grad / (2 * sqrt_x),)
+register("sqrt", Sqrt)
+
 def get_float_32_64():
     return np.float64 if Tensor.NEED_PRECISION else np.float32 
 
