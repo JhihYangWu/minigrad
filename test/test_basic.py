@@ -4,13 +4,14 @@ import numpy as np
 from minigrad.tensor import Tensor
 from minigrad.utils import calc_nc_grad
 
-x_init = np.random.randn(1, 3).astype(np.float32)
-W_init = np.random.randn(3, 3).astype(np.float32)
-m_init = np.random.randn(1, 3).astype(np.float32)
 Tensor.NEED_PRECISION = True
 
 class TestBasic(unittest.TestCase):
-    def test_grads(self):
+    def test_grads_1(self):
+        x_init = np.random.randn(1, 3).astype(np.float32)
+        W_init = np.random.randn(3, 3).astype(np.float32)
+        m_init = np.random.randn(1, 3).astype(np.float32)
+
         def get_minigrad():
             x = Tensor(x_init)
             W = Tensor(W_init)
