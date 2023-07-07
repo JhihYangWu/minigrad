@@ -185,6 +185,27 @@ class Reshape(Function):
         return (your_grad.reshape(x_shape),)
 register("reshape", Reshape)
 
+class Conv2D(Function):
+    @staticmethod
+    def forward(context, x, w, stride=1):
+        batch_size, x_channels, x_h, x_w = x.shape
+        num_filters, w_channels, w_h, w_w = w.shape
+        assert x_channels == w_channels
+        out_shape = (batch_size,
+                     num_filters,
+                     (x_h - w_h) // stride + 1,
+                     (x_w - w_w) // stride + 1)
+        out = np.zeros(out_shape, dtype=get_float_32_64())
+        for i in range(out_shape[2]):
+            for j in range(out_shape[3]):
+                for k in range(num_filters):
+                    for b in range(batch_size):
+                        filter = w[k, :, :, :]
+                        chunk = x[b, :, i*stride:i*stride+w_h, j*stride:j*stride+w_w]
+                        out[b, k, i, j] = (chunk * filter).sum()
+        return out
+register("conv2d", Conv2D)
+
 def get_float_32_64():
     return np.float64 if Tensor.NEED_PRECISION else np.float32 
 
