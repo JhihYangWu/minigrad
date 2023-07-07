@@ -23,6 +23,16 @@ class Add(Function):
         return (your_grad, your_grad)
 register("add", Add)
 
+class Sub(Function):
+    @staticmethod
+    def forward(context, x, y):
+        return x - y
+
+    @staticmethod
+    def backward(context, your_grad):
+        return (your_grad, -your_grad)
+register("sub", Sub)
+
 class MatMul(Function):
     @staticmethod
     def forward(context, input, weight):

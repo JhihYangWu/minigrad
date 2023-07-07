@@ -51,22 +51,25 @@ class TestBasic(unittest.TestCase):
             np.testing.assert_allclose(x, y, rtol=1e-4)
 
     def test_grads_2(self):
-        x_init = np.random.randn(1000, 625).astype(np.float32)
-        W_init = np.random.randn(625, 80).astype(np.float32)
+        x_init = np.random.randn(1000, 625).astype(np.float64)
+        W_init = np.random.randn(625, 80).astype(np.float64)
+        c_init = np.random.randn(1000, 625).astype(np.float64)
 
         def get_minigrad():
             x = Tensor(x_init)
             W = Tensor(W_init)
-            loss = x.matmul(W).exp2().max().sqrt()
+            c = Tensor(c_init)
+            loss = x.sub(c).matmul(W).exp2().max().sqrt()
             loss.backward()
-            return loss.data, x.grad.data, W.grad.data
+            return loss.data, x.grad.data, W.grad.data, c.grad.data
 
         def get_pytorch():
             x = torch.tensor(x_init, requires_grad=True)
             W = torch.tensor(W_init, requires_grad=True)
-            loss = x.matmul(W).exp2().max().sqrt()
+            c = torch.tensor(c_init, requires_grad=True)
+            loss = x.sub(c).matmul(W).exp2().max().sqrt()
             loss.backward()
-            return loss.detach().numpy(), x.grad, W.grad
+            return loss.detach().numpy(), x.grad, W.grad, c.grad
 
         for x, y in zip(get_minigrad(), get_pytorch()):
             np.testing.assert_allclose(x, y, rtol=1e-4)
