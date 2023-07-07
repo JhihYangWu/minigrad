@@ -16,7 +16,7 @@ class TestBasic(unittest.TestCase):
             W = Tensor(W_init)
             m = Tensor(m_init)
             loss = x.matmul(W).relu()
-            loss = loss.exp2()
+            loss = loss.exp2().sin()
             loss = loss.mul(m).add(m).softmax(dim=1).log2().sum()
             loss.backward()
             return loss.data, x.grad.data, W.grad.data
@@ -26,7 +26,7 @@ class TestBasic(unittest.TestCase):
             W = torch.tensor(W_init, requires_grad=True)
             m = torch.tensor(m_init)
             loss = x.matmul(W).relu()
-            loss = loss.exp2()
+            loss = loss.exp2().sin()
             loss = loss.mul(m).add(m).softmax(dim=1).log2().sum()
             loss.backward()
             return loss.detach().numpy(), x.grad, W.grad
@@ -36,7 +36,7 @@ class TestBasic(unittest.TestCase):
             W = Tensor(W_init)
             m = Tensor(m_init)
             loss = x.matmul(W).relu()
-            loss = loss.exp2()
+            loss = loss.exp2().sin()
             loss = loss.mul(m).add(m).softmax(dim=1).log2().sum()
             calc_nc_grad([x, W], loss)
             return loss.data, x.grad.data, W.grad.data

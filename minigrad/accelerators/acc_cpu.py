@@ -111,6 +111,18 @@ class Exp2(Function):
         return (your_grad * e_x * np.log(2),)
 register("exp2", Exp2)
 
+class Sin(Function):
+    @staticmethod
+    def forward(context, x):
+        context.save_for_backward(x)
+        return np.sin(x)
+
+    @staticmethod
+    def backward(context, your_grad):
+        x = context.safe[0]
+        return (your_grad * np.cos(x),)
+register("sin", Sin)
+
 def get_float_32_64():
     return np.float64 if Tensor.NEED_PRECISION else np.float32 
 
