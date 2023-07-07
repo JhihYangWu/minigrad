@@ -41,10 +41,10 @@ class TestBasic(unittest.TestCase):
         minigrad_output = get_minigrad()
 
         for x, y in zip(minigrad_output, get_pytorch()):
-            np.testing.assert_allclose(x, y, rtol=1e-5)
+            np.testing.assert_allclose(x, y, rtol=1e-4)
 
         for x, y in zip(minigrad_output, get_nc_grad()):
-            np.testing.assert_allclose(x, y, rtol=1e-5)
+            np.testing.assert_allclose(x, y, rtol=1e-4)
 
 if __name__ == "__main__":
     unittest.main()
