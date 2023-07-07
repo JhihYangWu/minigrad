@@ -109,3 +109,29 @@ class RMSprop:
             self.v2[i] = self.beta2 * self.v2[i] + (1 - self.beta2) * (new_grad * new_grad)
             weight_t.data -= self.lr * new_grad / (np.sqrt(self.v2[i]) + self.eps)
 
+class Adam:
+    def __init__(self, model_params, lr=1e-5, beta1=0.9, beta2=0.999, eps=1e-8):
+        # Adaptive Moment Estimation, basically just Momentum + RMSprop.
+        # Can use even higher lr than Momentum or RMSprop.
+        self.model_params = model_params
+        self.lr = lr
+        self.beta1 = beta1
+        self.beta2 = beta2
+        self.eps = eps
+
+        self.t = 0
+        self.v1 = [np.zeros_like(weight_t.data) for weight_t in self.model_params]
+        self.v2 = [np.zeros_like(weight_t.data) for weight_t in self.model_params]
+
+    def step(self):
+        self.t += 1
+        for i in range(len(self.model_params)):
+            weight_t = self.model_params[i]
+            new_grad = weight_t.grad.data
+            self.v1[i] = self.beta1 * self.v1[i] + (1 - self.beta1) * new_grad
+            self.v2[i] = self.beta2 * self.v2[i] + (1 - self.beta2) * (new_grad * new_grad)
+            # Bias correction in exponentially weighted averages. Fix slow start problem.
+            v1_corr = self.v1[i] / (1 - self.beta1 ** self.t)
+            v2_corr = self.v2[i] / (1 - self.beta2 ** self.t)
+            weight_t.data -= self.lr * v1_corr / (np.sqrt(v2_corr) + self.eps)
+
