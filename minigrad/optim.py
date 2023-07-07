@@ -72,3 +72,20 @@ class SGD:
         for weight_t in self.model_params:
             weight_t.data -= self.lr * weight_t.grad.data
 
+class Momentum:
+    def __init__(self, model_params, lr=0.00001, beta=0.9):
+        # beta=0.9 is moving average of approximately past 10 mini-batches.
+        # Momentum allows you to use higher lr than SGD because exploding pos-neg-pos-neg gradients get averaged out.
+        self.model_params = model_params
+        self.lr = lr
+        self.beta = beta
+
+        self.v = [np.zeros_like(weight_t.data) for weight_t in self.model_params]
+
+    def step(self):
+        for i in range(len(self.model_params)):
+            weight_t = self.model_params[i]
+            new_grad = weight_t.grad.data
+            self.v[i] = self.beta * self.v[i] + (1 - self.beta) * new_grad
+            weight_t.data -= self.lr * self.v[i]
+
