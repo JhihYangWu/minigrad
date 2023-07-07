@@ -98,6 +98,19 @@ class Softmax(Function):
         return (parent_grad,)
 register("softmax", Softmax)
 
+class Exp2(Function):
+    @staticmethod
+    def forward(context, x):
+        e_x = np.exp2(x)
+        context.save_for_backward(e_x)
+        return e_x
+
+    @staticmethod
+    def backward(context, your_grad):
+        e_x = context.safe[0]
+        return (your_grad * e_x * np.log(2),)
+register("exp2", Exp2)
+
 def get_float_32_64():
     return np.float64 if Tensor.NEED_PRECISION else np.float32 
 
