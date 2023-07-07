@@ -136,6 +136,22 @@ class Sqrt(Function):
         return (your_grad / (2 * sqrt_x),)
 register("sqrt", Sqrt)
 
+class Max(Function):
+    @staticmethod
+    def forward(context, x):
+        context.save_for_backward(x)
+        context.save_for_backward(x.argmax())
+        return np.array([x.max()], dtype=get_float_32_64())
+
+    @staticmethod
+    def backward(context, your_grad):
+        x, x_argmax = context.safe
+        parent_grad = np.zeros(np.prod(x.shape), dtype=get_float_32_64())
+        parent_grad[x_argmax] = your_grad
+        parent_grad = parent_grad.reshape(x.shape)
+        return (parent_grad,)
+register("max", Max)
+
 def get_float_32_64():
     return np.float64 if Tensor.NEED_PRECISION else np.float32 
 
