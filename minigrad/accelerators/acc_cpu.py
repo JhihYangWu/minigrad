@@ -174,6 +174,17 @@ class Max(Function):
         return (parent_grad,)
 register("max", Max)
 
+class Reshape(Function):
+    @staticmethod
+    def forward(context, x, shape=None):
+        context.save_for_backward(x.shape)
+        return x.reshape(shape)
+
+    def backward(context, your_grad):
+        x_shape = context.safe[0]
+        return (your_grad.reshape(x_shape),)
+register("reshape", Reshape)
+
 def get_float_32_64():
     return np.float64 if Tensor.NEED_PRECISION else np.float32 
 
