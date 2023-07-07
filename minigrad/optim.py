@@ -110,7 +110,7 @@ class RMSprop:
             weight_t.data -= self.lr * new_grad / (np.sqrt(self.v2[i]) + self.eps)
 
 class Adam:
-    def __init__(self, model_params, lr=1e-5, beta1=0.9, beta2=0.999, eps=1e-8):
+    def __init__(self, model_params, lr=1e-5, beta1=0.9, beta2=0.999, eps=1e-8, lr_decay=None, steps_per_epoch=None):
         # Adaptive Moment Estimation, basically just Momentum + RMSprop.
         # Can use even higher lr than Momentum or RMSprop.
         self.model_params = model_params
@@ -119,11 +119,20 @@ class Adam:
         self.beta2 = beta2
         self.eps = eps
 
+        # For learning rate decay. Better converge at local/global optima.
+        self.orig_lr = lr
+        self.lr_decay = lr_decay
+        self.steps_per_epoch = steps_per_epoch
+
         self.t = 0
         self.v1 = [np.zeros_like(weight_t.data) for weight_t in self.model_params]
         self.v2 = [np.zeros_like(weight_t.data) for weight_t in self.model_params]
 
     def step(self):
+        if self.lr_decay is not None:
+            epoch_num = self.t // self.steps_per_epoch
+            self.lr = (1 / (1 + self.lr_decay * epoch_num)) * self.orig_lr
+
         self.t += 1
         for i in range(len(self.model_params)):
             weight_t = self.model_params[i]

@@ -31,10 +31,10 @@ class TestMNIST(unittest.TestCase):
         print("Test Loss: %.2f | Test Accuracy: %.2f" % (test_loss, test_acc))
         assert test_acc >= 0.9
 
-    def test_mnist_adam(self):
+    def test_mnist_adam_lr_decay(self):
         x_train, y_train, x_test, y_test = get_mnist()
         model = FullyConnectedModel()
-        optimizer = optim.Adam(model.params(), lr=0.001)
+        optimizer = optim.Adam(model.params(), lr=0.001, lr_decay=0.5, steps_per_epoch=x_train.shape[0]/256)
         optim.train(x_train, y_train, model, optimizer, "CategoricalCrossentropy", 1000, 256)
         test_loss, test_acc = optim.evaluate(x_test, y_test, model, "CategoricalCrossentropy", 256)
         print("Test Loss: %.2f | Test Accuracy: %.2f" % (test_loss, test_acc))
