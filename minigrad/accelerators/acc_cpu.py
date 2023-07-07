@@ -13,6 +13,18 @@ class Mul(Function):
         return (y * your_grad, x * your_grad)
 register("mul", Mul)
 
+class Div(Function):
+    @staticmethod
+    def forward(context, x, y):
+        context.save_for_backward(x, y)
+        return x / y
+
+    @staticmethod
+    def backward(context, your_grad):
+       x, y = context.safe
+       return (1/y * your_grad, x * your_grad)
+register("div", Div)
+
 class Add(Function):
     @staticmethod
     def forward(context, x, y):

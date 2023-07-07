@@ -59,7 +59,7 @@ class TestBasic(unittest.TestCase):
             x = Tensor(x_init)
             W = Tensor(W_init)
             c = Tensor(c_init)
-            loss = x.sub(c).matmul(W).exp2().max().sqrt()
+            loss = x.sub(c).div(c).matmul(W).exp2().max().sqrt()
             loss.backward()
             return loss.data, x.grad.data, W.grad.data, c.grad.data
 
@@ -67,7 +67,7 @@ class TestBasic(unittest.TestCase):
             x = torch.tensor(x_init, requires_grad=True)
             W = torch.tensor(W_init, requires_grad=True)
             c = torch.tensor(c_init, requires_grad=True)
-            loss = x.sub(c).matmul(W).exp2().max().sqrt()
+            loss = x.sub(c).div(c).matmul(W).exp2().max().sqrt()
             loss.backward()
             return loss.detach().numpy(), x.grad, W.grad, c.grad
 
