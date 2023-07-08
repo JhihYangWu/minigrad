@@ -188,6 +188,9 @@ register("reshape", Reshape)
 class Conv2D(Function):
     @staticmethod
     def forward(context, x, w, stride=1):
+        context.save_for_backward(x)
+        context.save_for_backward(w)
+        context.save_for_backward(stride)
         batch_size, x_channels, x_h, x_w = x.shape
         num_filters, w_channels, w_h, w_w = w.shape
         assert x_channels == w_channels
@@ -203,6 +206,23 @@ class Conv2D(Function):
                     chunk = x[:, :, i*stride:i*stride+w_h, j*stride:j*stride+w_w]
                     out[:, k, i, j] = (chunk * filter).reshape(batch_size, -1).sum(axis=1)
         return out
+
+    def backward(context, your_grad):
+        x, w, stride = context.safe
+        batch_size, x_channels, x_h, x_w = x.shape
+        num_filters, w_channels, w_h, w_w = w.shape
+        x_grad = np.zeros(x.shape, dtype=get_float_32_64())
+        w_grad = np.zeros(w.shape, dtype=get_float_32_64())
+        out_shape = your_grad.shape
+        for i in range(out_shape[2]):
+            for j in range(out_shape[3]):
+                for k in range(num_filters):
+                    filter = w[k, :, :, :]
+                    chunk = x[:, :, i*stride:i*stride+w_h, j*stride:j*stride+w_w]
+                    g_out = your_grad[:, k, i, j].reshape((-1, 1, 1, 1))
+                    w_grad[k, :, :, :] += (g_out * chunk).sum(axis=0)
+                    x_grad[:, :, i*stride:i*stride+w_h, j*stride:j*stride+w_w] += g_out * filter
+        return x_grad, w_grad
 register("conv2d", Conv2D)
 
 def get_float_32_64():
