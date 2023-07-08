@@ -100,6 +100,33 @@ class TestBasic(unittest.TestCase):
             for x, y in zip(get_minigrad(), get_pytorch()):
                 np.testing.assert_allclose(x, y, atol=1e-4)
 
+    def test_grad_4(self):
+        x_init = np.random.randn(10, 20).astype(np.float32)
+        w_init = np.random.randn(20, 30).astype(np.float32)
+
+        def get_minigrad():
+            x = Tensor(x_init)
+            w = Tensor(w_init)
+            loss = x.matmul(w).dropout(p=0.7, debug=True)
+
+            percent_dropped = np.sum(loss.data == 0) / np.prod(loss.data.shape)
+            assert percent_dropped > 0.65 and percent_dropped < 0.75
+
+            loss = loss.sum()
+            loss.backward()
+            return loss.data, x.grad.data, w.grad.data
+
+        def get_nc_grad():
+            x = Tensor(x_init)
+            w = Tensor(w_init)
+            loss = x.matmul(w).dropout(p=0.7, debug=True)
+            loss = loss.sum()
+            calc_nc_grad([x, w], loss)
+            return loss.data, x.grad.data, w.grad.data
+
+        for x, y in zip(get_minigrad(), get_nc_grad()):
+            np.testing.assert_allclose(x, y, rtol=1e-4)
+
 if __name__ == "__main__":
     unittest.main()
 

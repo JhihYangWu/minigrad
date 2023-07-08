@@ -193,6 +193,7 @@ class Reshape(Function):
         context.save_for_backward(x.shape)
         return x.reshape(shape)
 
+    @staticmethod
     def backward(context, your_grad):
         x_shape = context.safe[0]
         return (your_grad.reshape(x_shape),)
@@ -220,6 +221,7 @@ class Conv2D(Function):
                     out[:, k, i, j] = (chunk * filter).reshape(batch_size, -1).sum(axis=1)
         return out
 
+    @staticmethod
     def backward(context, your_grad):
         x, w, stride = context.safe
         batch_size, x_channels, x_h, x_w = x.shape
@@ -245,6 +247,7 @@ class Sigmoid(Function):
         context.save_for_backward(s_x)
         return s_x
 
+    @staticmethod
     def backward(context, your_grad):
         s_x = context.safe[0]
         return (your_grad * s_x * (1 - s_x),)
@@ -257,10 +260,28 @@ class Tanh(Function):
         context.save_for_backward(t_x)
         return t_x
 
+    @staticmethod
     def backward(context, your_grad):
         t_x = context.safe[0]
         return (your_grad * (1 - np.square(t_x)),)
 register("tanh", Tanh)
+
+class Dropout(Function):
+    @staticmethod
+    def forward(context, x, p=0.5, debug=False):
+        if debug:
+            np.random.seed(10)
+        # Remember to set p = 0 during inference.
+        mask = (np.random.uniform(low=0.0, high=1.0, size=x.shape) > p).astype(get_float_32_64())
+        mask *= (1 / (1 - p))
+        context.save_for_backward(mask)
+        return x * mask
+
+    @staticmethod
+    def backward(context, your_grad):
+        mask = context.safe[0]
+        return (your_grad * mask,)
+register("dropout", Dropout)
 
 def get_float_32_64():
     return np.float64 if Tensor.NEED_PRECISION else np.float32 

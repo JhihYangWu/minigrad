@@ -40,8 +40,8 @@ def calc_nc_grad(tensors, loss_tensor, eps=1e-6):
             if unary:
                 # Unary ops never got chance to add op name to eval_str.
                 eval_str.extend((".", comp_path[i][1], "("))
-            for key in comp_path[i][3]:
-                if not unary:
+            for index, key in enumerate(comp_path[i][3]):
+                if not unary or index >= 1:
                     eval_str.append(", ")
                 eval_str.append(f"{key}={comp_path[i][3][key]}")
             eval_str.append(")")
