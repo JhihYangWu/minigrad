@@ -136,8 +136,7 @@ class TestBasic(unittest.TestCase):
             x = Tensor(x_init)
             w1 = Tensor(w1_init)
             w2 = Tensor(w2_init)
-            w3 = x.matmul(w2)
-            loss = x.matmul(w1).relu().matmul(w2).add(x).matmul(w3).sum()
+            loss = x.matmul(w1).relu().matmul(w2).add(x).matmul(w2).sum()
             loss.backward()
             return loss.data, x.grad.data, w1.grad.data, w2.grad.data
 
@@ -145,8 +144,7 @@ class TestBasic(unittest.TestCase):
             x = Tensor(x_init)
             w1 = Tensor(w1_init)
             w2 = Tensor(w2_init)
-            w3 = x.matmul(w2)
-            loss = x.matmul(w1).relu().matmul(w2).add(x).matmul(w3).sum()
+            loss = x.matmul(w1).relu().matmul(w2).add(x).matmul(w2).sum()
             calc_nc_grad([x, w1, w2], loss)
             return loss.data, x.grad.data, w1.grad.data, w2.grad.data
 
@@ -154,8 +152,7 @@ class TestBasic(unittest.TestCase):
             x = torch.tensor(x_init, requires_grad=True)
             w1 = torch.tensor(w1_init, requires_grad=True)
             w2 = torch.tensor(w2_init, requires_grad=True)
-            w3 = x.matmul(w2)
-            loss = x.matmul(w1).relu().matmul(w2).add(x).matmul(w3).sum()
+            loss = x.matmul(w1).relu().matmul(w2).add(x).matmul(w2).sum()
             loss.backward()
             return loss.detach().numpy(), x.grad, w1.grad, w2.grad
 
