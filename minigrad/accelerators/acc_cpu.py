@@ -225,6 +225,18 @@ class Conv2D(Function):
         return x_grad, w_grad
 register("conv2d", Conv2D)
 
+class Sigmoid(Function):
+    @staticmethod
+    def forward(context, x):
+        s_x = 1 / (1 + np.exp(-x))
+        context.save_for_backward(s_x)
+        return s_x
+
+    def backward(context, your_grad):
+        s_x = context.safe[0]
+        return (your_grad * s_x * (1 - s_x),)
+register("sigmoid", Sigmoid)
+
 def get_float_32_64():
     return np.float64 if Tensor.NEED_PRECISION else np.float32 
 
