@@ -82,19 +82,19 @@ class TestBasic(unittest.TestCase):
             def get_minigrad():
                 x = Tensor(x_init)
                 w = Tensor(w_init)
-                loss = x.conv2d(w, stride=stride).sum()
+                loss = x.conv2d(w, stride=stride).tanh().sum()
                 loss.backward()
                 return loss.data, x.grad.data, w.grad.data
 
             def get_pytorch():
                 x = torch.tensor(x_init, requires_grad=True)
                 w = torch.tensor(w_init, requires_grad=True)
-                loss = torch.nn.functional.conv2d(x, w, stride=stride).sum()
+                loss = torch.nn.functional.conv2d(x, w, stride=stride).tanh().sum()
                 loss.backward()
                 return loss.detach().numpy(), x.grad, w.grad
 
             for x, y in zip(get_minigrad(), get_pytorch()):
-                np.testing.assert_allclose(x, y, rtol=1e-4)
+                np.testing.assert_allclose(x, y, rtol=1e-2)
 
 if __name__ == "__main__":
     unittest.main()

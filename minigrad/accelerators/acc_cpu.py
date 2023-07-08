@@ -237,6 +237,18 @@ class Sigmoid(Function):
         return (your_grad * s_x * (1 - s_x),)
 register("sigmoid", Sigmoid)
 
+class Tanh(Function):
+    @staticmethod
+    def forward(context, x):
+        t_x = (np.exp(x) - np.exp(-x)) / (np.exp(x) + np.exp(-x))
+        context.save_for_backward(t_x)
+        return t_x
+
+    def backward(context, your_grad):
+        t_x = context.safe[0]
+        return (your_grad * (1 - np.square(t_x)),)
+register("tanh", Tanh)
+
 def get_float_32_64():
     return np.float64 if Tensor.NEED_PRECISION else np.float32 
 
