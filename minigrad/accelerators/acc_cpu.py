@@ -83,6 +83,19 @@ class ReLU(Function):
         return (your_grad * (x >= 0),)
 register("relu", ReLU)
 
+class LeakyReLU(Function):
+    @staticmethod
+    def forward(context, x, a=0.01):
+        context.save_for_backward(x)
+        context.save_for_backward(a)
+        return np.maximum(x, 0) + a * np.minimum(x, 0)
+
+    @staticmethod
+    def backward(context, your_grad):
+        x, a = context.safe
+        return (your_grad * (1 * (x >= 0) + a * (x < 0)),)
+register("leaky_relu", LeakyReLU)
+
 class Log2(Function):
     @staticmethod
     def forward(context, x):

@@ -59,7 +59,9 @@ class TestBasic(unittest.TestCase):
             x = Tensor(x_init)
             W = Tensor(W_init)
             c = Tensor(c_init)
-            loss = x.sub(c).sigmoid().div(c).matmul(W).exp2().reshape(shape=(-1, 50)).max().sqrt()
+            loss = x.sub(c)
+            loss = loss.leaky_relu()
+            loss = loss.sigmoid().div(c).matmul(W).exp2().reshape(shape=(-1, 50)).max().sqrt()
             loss.backward()
             return loss.data, x.grad.data, W.grad.data, c.grad.data
 
@@ -67,7 +69,9 @@ class TestBasic(unittest.TestCase):
             x = torch.tensor(x_init, requires_grad=True)
             W = torch.tensor(W_init, requires_grad=True)
             c = torch.tensor(c_init, requires_grad=True)
-            loss = x.sub(c).sigmoid().div(c).matmul(W).exp2().reshape((-1, 50)).max().sqrt()
+            loss = x.sub(c)
+            loss = torch.nn.functional.leaky_relu(loss)
+            loss = loss.sigmoid().div(c).matmul(W).exp2().reshape((-1, 50)).max().sqrt()
             loss.backward()
             return loss.detach().numpy(), x.grad, W.grad, c.grad
 
@@ -94,7 +98,7 @@ class TestBasic(unittest.TestCase):
                 return loss.detach().numpy(), x.grad, w.grad
 
             for x, y in zip(get_minigrad(), get_pytorch()):
-                np.testing.assert_allclose(x, y, rtol=1e-2)
+                np.testing.assert_allclose(x, y, atol=1e-4)
 
 if __name__ == "__main__":
     unittest.main()
