@@ -127,6 +127,46 @@ class TestBasic(unittest.TestCase):
         for x, y in zip(get_minigrad(), get_nc_grad()):
             np.testing.assert_allclose(x, y, rtol=1e-4)
 
+    def test_skip_connection(self):
+        x_init = np.random.randn(20, 20).astype(np.float32)
+        w1_init = np.random.randn(20, 20).astype(np.float32)
+        w2_init = np.random.randn(20, 20).astype(np.float32)
+
+        def get_minigrad():
+            x = Tensor(x_init)
+            w1 = Tensor(w1_init)
+            w2 = Tensor(w2_init)
+            w3 = x.matmul(w2)
+            loss = x.matmul(w1).relu().matmul(w2).add(x).matmul(w3).sum()
+            loss.backward()
+            return loss.data, x.grad.data, w1.grad.data, w2.grad.data
+
+        def get_nc_grad():
+            x = Tensor(x_init)
+            w1 = Tensor(w1_init)
+            w2 = Tensor(w2_init)
+            w3 = x.matmul(w2)
+            loss = x.matmul(w1).relu().matmul(w2).add(x).matmul(w3).sum()
+            calc_nc_grad([x, w1, w2], loss)
+            return loss.data, x.grad.data, w1.grad.data, w2.grad.data
+
+        def get_pytorch():
+            x = torch.tensor(x_init, requires_grad=True)
+            w1 = torch.tensor(w1_init, requires_grad=True)
+            w2 = torch.tensor(w2_init, requires_grad=True)
+            w3 = x.matmul(w2)
+            loss = x.matmul(w1).relu().matmul(w2).add(x).matmul(w3).sum()
+            loss.backward()
+            return loss.detach().numpy(), x.grad, w1.grad, w2.grad
+
+        pytorch_output = get_pytorch()
+
+        for x, y in zip(pytorch_output, get_nc_grad()):
+            np.testing.assert_allclose(x, y, atol=1e-3)
+
+        for x, y in zip(pytorch_output, get_minigrad()):
+            np.testing.assert_allclose(x, y, atol=1e-3)
+
 if __name__ == "__main__":
     unittest.main()
 
