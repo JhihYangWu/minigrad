@@ -45,22 +45,40 @@ class Tensor:
         vals = np.random.uniform(-1.0, 1.0, size=shape) / np.sqrt(np.prod(shape))
         return Tensor(vals.astype(np.float32))
 
-    def backward(self, loss_tensor=True):
+    def backward(self, user_called=True):
+        def zero_grads(t):
+            if t.grad is None:
+                t.grad = Tensor(np.zeros(t.data.shape, dtype=t.data.dtype))
+            else:
+                t.grad.data[:] = 0
+            if t._context is not None:
+                for p_t in t._context.parents:
+                    zero_grads(p_t)
+        def find_topological_order(t, ordered_list, in_list):
+            if t._context is not None:
+                for p_t in t._context.parents:
+                    find_topological_order(p_t, ordered_list, in_list)
+            if t not in in_list:
+                ordered_list.append(t)
+                in_list.add(t)
+    
         if self._context is None:
             return  # You are root node, no need to calculate more grads.
 
-        if loss_tensor:
+        if user_called:
             assert self.data.shape == (1,)  # Make sure loss is a single number.
+            zero_grads(self)
             self.grad = Tensor(np.ones(self.data.shape, dtype=self.data.dtype))
-
-        assert(self.grad is not None)  # Child Tensor should have set up your grad.
+            ordered_list = []
+            find_topological_order(self, ordered_list, set())
+            for t in reversed(ordered_list):
+                t.backward(user_called=False)
 
         parent_grads = self._context.func_applied.backward(self._context, self.grad.data)
         for p, g in zip(self._context.parents, parent_grads):
             if g.shape != p.data.shape:
                 raise ValueError(f"Computed grad doesn't match data's shape. {g.shape} != {p.data.shape}.")
-            p.grad = Tensor(g)
-            p.backward(loss_tensor=False)
+            p.grad.data += g
 
 class Context:
     def __init__(self, func_applied, func_name, func_kwargs, *parents):
