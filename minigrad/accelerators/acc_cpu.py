@@ -253,11 +253,10 @@ class MaxPool2d(Function):
             for j in range(out_shape[3]):
                 chunk = x[:, :, i*stride:i*stride+kernel_size[0], j*stride:j*stride+kernel_size[1]]
                 chunk = chunk.reshape((batch_size, x_channels, -1))
-                max_indices = np.argmax(chunk, axis=2)
-                for i2 in range(batch_size):
-                    for j2 in range(x_channels):
-                        context.save_for_backward(max_indices[i2, j2])
-                        out[i2, j2, i, j] = chunk[i2, j2, max_indices[i2, j2]]
+                max_indices = np.argmax(chunk, axis=2).reshape(-1)
+                max_values = chunk[np.arange(batch_size).repeat(x_channels), np.tile(np.arange(x_channels), batch_size), max_indices]
+                out[:, :, i, j] = max_values.reshape(batch_size, x_channels)
+                context.save_for_backward(max_indices)
         context.save_for_backward(x)
         context.save_for_backward(stride)
         context.save_for_backward(kernel_size)
@@ -273,11 +272,12 @@ class MaxPool2d(Function):
         parent_grad = np.zeros(x.shape, dtype=get_float_32_64())
         for i in reversed(range(out_shape[2])):
             for j in reversed(range(out_shape[3])):
-                for i2 in reversed(range(batch_size)):
-                    for j2 in reversed(range(x_channels)):
-                        t = context.safe.pop()
-                        chunk = parent_grad[i2, j2, i*stride:i*stride+kernel_size[0], j*stride:j*stride+kernel_size[1]]
-                        chunk[t//kernel_size[1], t%kernel_size[1]] += your_grad[i2, j2, i, j]
+                max_indices = context.safe.pop()
+                chunk = parent_grad[:, :, i*stride:i*stride+kernel_size[0], j*stride:j*stride+kernel_size[1]]
+                chunk = chunk.reshape((batch_size, x_channels, -1))
+                chunk[np.arange(batch_size).repeat(x_channels), np.tile(np.arange(x_channels), batch_size), max_indices] += your_grad[:, :, i, j].reshape(-1)
+                chunk = chunk.reshape((batch_size, x_channels, kernel_size[0], kernel_size[1]))
+                parent_grad[:, :, i*stride:i*stride+kernel_size[0], j*stride:j*stride+kernel_size[1]] = chunk
         return (parent_grad,)
 register("maxpool2d", MaxPool2d)
 
