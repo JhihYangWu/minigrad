@@ -283,6 +283,46 @@ class Dropout(Function):
         return (your_grad * mask,)
 register("dropout", Dropout)
 
+class Pad(Function):
+    @staticmethod
+    def forward(context, x, pad, value=0):
+        # For how to use this function:
+        # https://pytorch.org/docs/stable/generated/torch.nn.functional.pad.html
+        m = len(pad)
+        assert m == 2 or m == 4 or m == 6 or m == 8
+        new_shape = np.array(x.shape)
+        for i, val in enumerate(pad):
+            index = -1 - i // 2
+            new_shape[index] += val
+        new_x = np.full(new_shape, value, dtype=x.dtype)
+        s = x.shape
+        if m == 2:
+            new_x[..., pad[0]:pad[0]+s[-1]] = x
+        elif m == 4:
+            new_x[..., pad[2]:pad[2]+s[-2], pad[0]:pad[0]+s[-1]] = x
+        elif m == 6:
+            new_x[..., pad[4]:pad[4]+s[-3], pad[2]:pad[2]+s[-2], pad[0]:pad[0]+s[-1]] = x
+        elif m == 8:
+            new_x[..., pad[6]:pad[6]+s[-4], pad[4]:pad[4]+s[-3], pad[2]:pad[2]+s[-2], pad[0]:pad[0]+s[-1]] = x
+        context.save_for_backward(pad)
+        context.save_for_backward(s)
+        return new_x
+
+    @staticmethod
+    def backward(context, your_grad):
+        pad, s = context.safe
+        m = len(pad)
+        if m == 2:
+            retval = your_grad[..., pad[0]:pad[0]+s[-1]]
+        elif m == 4:
+            retval = your_grad[..., pad[2]:pad[2]+s[-2], pad[0]:pad[0]+s[-1]]
+        elif m == 6:
+            retval = your_grad[..., pad[4]:pad[4]+s[-3], pad[2]:pad[2]+s[-2], pad[0]:pad[0]+s[-1]]
+        elif m == 8:
+            retval = your_grad[..., pad[6]:pad[6]+s[-4], pad[4]:pad[4]+s[-3], pad[2]:pad[2]+s[-2], pad[0]:pad[0]+s[-1]]
+        return (retval,)
+register("pad", Pad)
+
 def get_float_32_64():
     return np.float64 if Tensor.NEED_PRECISION else np.float32 
 

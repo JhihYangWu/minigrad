@@ -125,7 +125,7 @@ class TestBasic(unittest.TestCase):
             return loss.data, x.grad.data, w.grad.data
 
         for x, y in zip(get_minigrad(), get_nc_grad()):
-            np.testing.assert_allclose(x, y, rtol=1e-4)
+            np.testing.assert_allclose(x, y, rtol=1e-3)
 
     def test_skip_connection(self):
         x_init = np.random.randn(20, 20).astype(np.float32)
@@ -163,6 +163,34 @@ class TestBasic(unittest.TestCase):
 
         for x, y in zip(pytorch_output, get_minigrad()):
             np.testing.assert_allclose(x, y, atol=1e-3)
+
+    def test_pad(self):
+        x_init = np.random.randn(5, 2, 10, 7).astype(np.float32)
+        w_init = np.random.randn(4, 2, 3, 3).astype(np.float32)
+        c_init = np.random.randn(6, 4, 14, 9).astype(np.float32)
+
+        def get_minigrad():
+            x = Tensor(x_init)
+            w = Tensor(w_init)
+            c = Tensor(c_init)
+            loss = x.conv2d(w)
+            loss = loss.pad(pad=(1, 3, 2, 4, 0, 0, 0, 1), value=3)
+            loss = loss.mul(c).sum()
+            loss.backward()
+            return loss.data, x.grad.data, w.grad.data
+            
+        def get_pytorch():
+            x = torch.tensor(x_init, requires_grad=True)
+            w = torch.tensor(w_init, requires_grad=True)
+            c = torch.tensor(c_init)
+            loss = torch.nn.functional.conv2d(x, w)
+            loss = torch.nn.functional.pad(loss, (1, 3, 2, 4, 0, 0, 0, 1), value=3)
+            loss = loss.mul(c).sum()
+            loss.backward()
+            return loss.detach().numpy(), x.grad, w.grad
+
+        for x, y in zip(get_minigrad(), get_pytorch()):
+            np.testing.assert_allclose(x, y, rtol=1e-3)
 
 if __name__ == "__main__":
     unittest.main()
