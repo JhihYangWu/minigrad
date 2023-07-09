@@ -192,6 +192,31 @@ class TestBasic(unittest.TestCase):
         for x, y in zip(get_minigrad(), get_pytorch()):
             np.testing.assert_allclose(x, y, rtol=1e-3)
 
+    def test_maxpool(self):
+        x_init = np.random.randn(5, 2, 10, 7).astype(np.float32)
+        w_init = np.random.randn(4, 2, 3, 3).astype(np.float32)
+       
+        def get_minigrad():
+            x = Tensor(x_init)
+            w = Tensor(w_init)
+            loss = x.conv2d(w)
+            loss = loss.maxpool2d(kernel_size=(2, 3), stride=2)
+            loss = loss.sum()
+            loss.backward()
+            return loss.data, x.grad.data, w.grad.data
+
+        def get_pytorch():
+            x = torch.tensor(x_init, requires_grad=True)
+            w = torch.tensor(w_init, requires_grad=True)
+            loss = torch.nn.functional.conv2d(x, w)
+            loss = torch.nn.MaxPool2d((2, 3), stride=2)(loss)
+            loss = loss.sum()
+            loss.backward()
+            return loss.detach().numpy(), x.grad, w.grad
+            
+        for x, y in zip(get_minigrad(), get_pytorch()):
+            np.testing.assert_allclose(x, y, rtol=1e-3)
+
 if __name__ == "__main__":
     unittest.main()
 

@@ -240,6 +240,47 @@ class Conv2D(Function):
         return x_grad, w_grad
 register("conv2d", Conv2D)
 
+class MaxPool2d(Function):
+    @staticmethod
+    def forward(context, x, kernel_size, stride=1):
+        batch_size, x_channels, x_h, x_w = x.shape
+        out_shape = (batch_size,
+                     x_channels,
+                     (x_h - kernel_size[0]) // stride + 1,
+                     (x_w - kernel_size[1]) // stride + 1)
+        out = np.zeros(out_shape, dtype=get_float_32_64())
+        for i in range(out_shape[2]):
+            for j in range(out_shape[3]):
+                chunk = x[:, :, i*stride:i*stride+kernel_size[0], j*stride:j*stride+kernel_size[1]]
+                chunk = chunk.reshape((batch_size, x_channels, -1))
+                max_indices = np.argmax(chunk, axis=2)
+                for i2 in range(batch_size):
+                    for j2 in range(x_channels):
+                        context.save_for_backward(max_indices[i2, j2])
+                        out[i2, j2, i, j] = chunk[i2, j2, max_indices[i2, j2]]
+        context.save_for_backward(x)
+        context.save_for_backward(stride)
+        context.save_for_backward(kernel_size)
+        return out
+
+    @staticmethod
+    def backward(context, your_grad):
+        kernel_size = context.safe.pop()
+        stride = context.safe.pop()
+        x = context.safe.pop()
+        batch_size, x_channels, x_h, x_w = x.shape
+        out_shape = your_grad.shape
+        parent_grad = np.zeros(x.shape, dtype=get_float_32_64())
+        for i in reversed(range(out_shape[2])):
+            for j in reversed(range(out_shape[3])):
+                for i2 in reversed(range(batch_size)):
+                    for j2 in reversed(range(x_channels)):
+                        t = context.safe.pop()
+                        chunk = parent_grad[i2, j2, i*stride:i*stride+kernel_size[0], j*stride:j*stride+kernel_size[1]]
+                        chunk[t//kernel_size[1], t%kernel_size[1]] += your_grad[i2, j2, i, j]
+        return (parent_grad,)
+register("maxpool2d", MaxPool2d)
+
 class Sigmoid(Function):
     @staticmethod
     def forward(context, x):
