@@ -63,12 +63,12 @@ class FullyConnectedModel:
         return [self.l1, self.l2, self.l3, self.g1, self.b1, self.g2, self.b2]
 
     def forward(self, x):
-        loss = x.matmul(self.l1)
-        loss = loss.batchnorm1d(self.g1, self.b1)
-        loss = loss.relu().matmul(self.l2)
-        loss = loss.batchnorm1d(self.g2, self.b2)
-        loss = loss.relu().matmul(self.l3).softmax(dim=1)
-        return loss
+        pred = x.matmul(self.l1)
+        pred = pred.batchnorm1d(self.g1, self.b1)
+        pred = pred.relu().matmul(self.l2)
+        pred = pred.batchnorm1d(self.g2, self.b2)
+        pred = pred.relu().matmul(self.l3).softmax(dim=1)
+        return pred
 
 class ConvModel:
     def __init__(self):
