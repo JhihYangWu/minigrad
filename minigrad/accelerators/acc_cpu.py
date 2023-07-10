@@ -364,6 +364,40 @@ class Pad(Function):
         return (retval,)
 register("pad", Pad)
 
+class BatchNorm1D(Function):
+    @staticmethod
+    def forward(context, x, gamma, beta, eps=1e-8):
+        # Normalizes hidden layer inputs so you can increase lr more and speed up learning.
+        # Slight regularization effect.
+        # Eliminates the need for bias term because that gets removed by mu anyways.
+        # Gives layer more robust ground to stand on while layers before train.
+        # Makes loss surface less stretched and more round.
+        assert len(x.shape) == 2
+        mu = x.mean(axis=0)
+        var = x.var(axis=0)
+        x_norm = (x - mu) / (np.sqrt(var) + eps)
+        x_tilde = gamma * x_norm + beta
+        context.save_for_backward(x)
+        context.save_for_backward(x_norm)
+        context.save_for_backward(var)
+        context.save_for_backward(eps)
+        context.save_for_backward(gamma)
+        return x_tilde
+
+    @staticmethod
+    def backward(context, your_grad):
+        x, x_norm, var, eps, gamma = context.safe
+        g_beta = your_grad.sum(axis=0)
+        g_gamma = (x_norm * your_grad).sum(axis=0)
+        g_x_norm = your_grad * gamma
+        # === Written by ChatGPT. Have no idea how it works. ===
+        g_var = np.sum(-0.5 * g_x_norm * (x - x.mean(axis=0)) / ((var + eps) ** 1.5), axis=0)
+        g_mu = np.sum(-g_x_norm / np.sqrt(var + eps), axis=0)
+        g_x = g_x_norm / np.sqrt(var + eps) + 2.0 * (x - x.mean(axis=0)) * g_var / x.shape[0] + g_mu / x.shape[0]
+        # === End. ===
+        return g_x, g_gamma, g_beta
+register("batchnorm1d", BatchNorm1D)
+
 def get_float_32_64():
     return np.float64 if Tensor.NEED_PRECISION else np.float32 
 

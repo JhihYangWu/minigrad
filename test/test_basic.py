@@ -217,6 +217,36 @@ class TestBasic(unittest.TestCase):
         for x, y in zip(get_minigrad(), get_pytorch()):
             np.testing.assert_allclose(x, y, rtol=1e-3)
 
+    def test_batchnorm(self):
+        x_init = np.random.randn(256, 20).astype(np.float32)
+        w1_init = np.random.randn(20, 40).astype(np.float32)
+        w2_init = np.random.randn(40, 10).astype(np.float32)
+        gamma_init = np.random.randn(40).astype(np.float32)
+        beta_init = np.random.randn(40).astype(np.float32)
+
+        def get_minigrad():
+            x = Tensor(x_init)
+            w1 = Tensor(w1_init)
+            w2 = Tensor(w2_init)
+            gamma = Tensor(gamma_init)
+            beta = Tensor(beta_init)
+            loss = x.matmul(w1).batchnorm1d(gamma, beta).relu().matmul(w2).sum()
+            loss.backward()
+            return loss.data, x.grad.data, w1.grad.data, w2.grad.data, gamma.grad.data, beta.grad.data
+
+        def get_nc_grad():
+            x = Tensor(x_init)
+            w1 = Tensor(w1_init)
+            w2 = Tensor(w2_init)
+            gamma = Tensor(gamma_init)
+            beta = Tensor(beta_init)
+            loss = x.matmul(w1).batchnorm1d(gamma, beta).relu().matmul(w2).sum()
+            calc_nc_grad([x, w1, w2, gamma, beta], loss)
+            return loss.data, x.grad.data, w1.grad.data, w2.grad.data, gamma.grad.data, beta.grad.data
+            
+        for x, y in zip(get_minigrad(), get_nc_grad()):
+            np.testing.assert_allclose(x, y, rtol=1e-3, atol=1e-3)
+
 if __name__ == "__main__":
     unittest.main()
 
