@@ -86,3 +86,32 @@ def find_all_indices(shape):
             retval.append((i,) + j)
     return retval
 
+def get_mnist():
+    def fetch(url):
+        import requests, gzip, os, hashlib, tempfile
+        fp = os.path.join(tempfile.gettempdir(), hashlib.md5(url.encode("utf-8")).hexdigest())
+        if os.path.isfile(fp):
+            with open(fp, "rb") as f:
+                data = f.read() 
+        else:
+            with open(fp, "wb") as f:
+                data = requests.get(url).content
+                f.write(data)
+        return np.frombuffer(gzip.decompress(data), dtype=np.uint8).copy()
+
+    x_train = fetch("http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz")[0x10:].reshape((-1, 28, 28))
+    y_train = fetch("http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz")[8:]
+    x_test = fetch("http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz")[0x10:].reshape((-1, 28, 28))
+    y_test = fetch("http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz")[8:]
+
+    x_train = x_train.reshape((-1, 784)).astype(np.float32)
+    x_test = x_test.reshape((-1, 784)).astype(np.float32)
+    y = np.zeros((len(y_train), 10), dtype=np.float32)
+    y[range(y.shape[0]), y_train] = 1
+    y_train = y
+    y = np.zeros((len(y_test), 10), dtype=np.float32)
+    y[range(y.shape[0]), y_test] = 1
+    y_test = y
+
+    return x_train, y_train, x_test, y_test
+
