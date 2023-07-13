@@ -7,11 +7,28 @@
 import unicodedata
 import string
 import os
+from minigrad.tensor import Tensor
 
 ALL_LETTERS = string.ascii_letters + ".,;'"
 
 def main():
     names = load_data()
+    num_lang = len(names)
+    rnn = RNN(len(ALL_LETTERS), num_lang)
+
+class RNN:
+    def __init__(self, input_size, output_size):
+        self.w1 = Tensor.rand_init(input_size + 128, 128)
+        self.w2 = Tensor.rand_init(128, output_size)
+
+    def params(self):
+        return [self.w1, self.w2]
+
+    def forward(self, input, hidden):
+        combined = input.cat(hidden)
+        hidden = combined.matmul(self.w1)
+        output = hidden.matmul(self.w2).softmax()
+        return output, hidden
 
 def unicode_to_ascii(s):
     return "".join(
