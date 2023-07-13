@@ -8,6 +8,8 @@ import unicodedata
 import string
 import os
 from minigrad.tensor import Tensor
+import random
+import numpy as np
 
 ALL_LETTERS = string.ascii_letters + ".,;'"
 
@@ -16,6 +18,7 @@ def main():
     langs = list(names.keys())
     num_lang = len(langs)
     rnn = RNN(len(ALL_LETTERS), num_lang)
+    training_data = create_training_data(names, langs)
 
 class RNN:
     def __init__(self, input_size, output_size):
@@ -45,6 +48,23 @@ def load_data():
             lines = open("names/" + file, encoding="utf-8").read().strip().split("\n")
             names[language] = [unicode_to_ascii(n) for n in lines]
     return names
+
+def create_training_data(names, langs):
+    retval = []
+    for lang in names:
+        for name in names[lang]:
+            char_tensors = []
+            for c in name:
+                t = np.zeros((1, len(ALL_LETTERS)), dtype=np.float32)
+                t[0, ALL_LETTERS.index(c)] = 1
+                t = Tensor(t)
+                char_tensors.append(t)
+            output_tensor = np.zeros((1, len(langs)), dtype=np.float32)
+            output_tensor[0, langs.index(lang)] = 1
+            output_tensor = Tensor(output_tensor)
+            retval.append((char_tensors, output_tensor))
+    random.shuffle(retval)
+    return retval
 
 if __name__ == "__main__":
     main()
