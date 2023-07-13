@@ -45,6 +45,28 @@ def main():
         moving_loss_corr = moving_loss / (1 - BETA ** (1+iter))
         moving_acc_corr = moving_acc / (1 - BETA ** (1+iter))
         t.set_description("Loss: %.5f | Accuracy: %.2f" % (moving_loss_corr, moving_acc_corr))
+    # Play with model.
+    while True:
+        user_input = input("Enter a last name: ")
+        user_input = unicode_to_ascii(user_input.strip().lower().capitalize())
+        tensors = []
+        for c in user_input:
+            t = np.zeros((1, len(ALL_LETTERS)), dtype=np.float32)
+            t[0, ALL_LETTERS.index(c)] = 1
+            t = Tensor(t)
+            tensors.append(t)
+        hidden = Tensor(np.zeros((1, 256), dtype=np.float32))
+        for t in tensors:
+            pred, hidden = model.forward(t, hidden)
+        pred = pred.data[0]
+        print(f"Prediction for {user_input}: ", end="")
+        for _ in range(3):
+            i = np.argmax(pred)
+            conf = round(pred[i] * 100, 2)
+            print(f"{langs[i]} {conf}% | ", end="")
+            pred[i] = -1
+        print()
+        print()
 
 class RNN:
     def __init__(self, input_size, output_size, hidden_size=256):
