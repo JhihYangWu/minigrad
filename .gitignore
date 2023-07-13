@@ -3,4 +3,5 @@ __pycache__/
 *.swp
 *.egg-info/
 build/
+examples/names/
 
