@@ -13,9 +13,11 @@ import random
 import numpy as np
 from tqdm import trange
 
-N_ITERS = 40000
+N_ITERS = 500
 ALL_LETTERS = string.ascii_letters + ".,;'"
 BETA = 0.99  # For moving loss and acc.
+BATCH_SIZE = 256
+HIDDEN_SIZE = 256
 
 def main():
     names = load_data()
@@ -24,17 +26,26 @@ def main():
     model = RNN(len(ALL_LETTERS), num_lang)
     training_data = create_training_data(names, langs)
     n_one = Tensor([-1])
-    optimizer = optim.Adam(model.params(), lr=1e-7)
+    optimizer = optim.Adam(model.params(), lr=1e-3)
     moving_loss, moving_acc = 0, 0
     for iter in (t := trange(N_ITERS)):
-        i = np.random.randint(0, len(training_data))
-        training_example = training_data[i]
-        hidden = Tensor(np.zeros((1, 256), dtype=np.float32))
-        for j in range(len(training_example[0])):
-            pred, hidden = model.forward(training_example[0][j], hidden)
-        true_y = training_example[1]
-        loss = pred.log2().mul(true_y).sum().mul(n_one)
-        loss.backward() 
+        g_w1s = np.zeros((BATCH_SIZE,) + model.w1.data.shape, np.float32)
+        g_w2s = np.zeros((BATCH_SIZE,) + model.w2.data.shape, np.float32)
+        for b in range(BATCH_SIZE):
+            i = np.random.randint(0, len(training_data))
+            training_example = training_data[i]
+            hidden = Tensor(np.zeros((1, HIDDEN_SIZE), dtype=np.float32))
+            for j in range(len(training_example[0])):
+                pred, hidden = model.forward(training_example[0][j], hidden)
+            true_y = training_example[1]
+            loss = pred.log2().mul(true_y).sum().mul(n_one)
+            loss.backward() 
+            g_w1s[b] = model.w1.grad.data
+            g_w2s[b] = model.w2.grad.data
+        g_w1 = g_w1s.sum(axis=0)
+        g_w2 = g_w2s.sum(axis=0)
+        model.w1.grad.data = g_w1
+        model.w2.grad.data = g_w2
         optimizer.step()
         # Print stats.
         pred_label = np.argmax(pred.data)
@@ -47,15 +58,17 @@ def main():
         t.set_description("Loss: %.5f | Accuracy: %.2f" % (moving_loss_corr, moving_acc_corr))
     # Play with model.
     while True:
-        user_input = input("Enter a last name: ")
-        user_input = unicode_to_ascii(user_input.strip().lower().capitalize())
+        user_input = ""
+        while user_input == "":
+            user_input = input("Enter a last name: ")
+            user_input = unicode_to_ascii(user_input.strip().lower().capitalize())
         tensors = []
         for c in user_input:
             t = np.zeros((1, len(ALL_LETTERS)), dtype=np.float32)
             t[0, ALL_LETTERS.index(c)] = 1
             t = Tensor(t)
             tensors.append(t)
-        hidden = Tensor(np.zeros((1, 256), dtype=np.float32))
+        hidden = Tensor(np.zeros((1, HIDDEN_SIZE), dtype=np.float32))
         for t in tensors:
             pred, hidden = model.forward(t, hidden)
         pred = pred.data[0]
@@ -69,9 +82,9 @@ def main():
         print()
 
 class RNN:
-    def __init__(self, input_size, output_size, hidden_size=256):
-        self.w1 = Tensor.rand_init(input_size + hidden_size, hidden_size)
-        self.w2 = Tensor.rand_init(hidden_size, output_size)
+    def __init__(self, input_size, output_size):
+        self.w1 = Tensor.rand_init(input_size + HIDDEN_SIZE, HIDDEN_SIZE)
+        self.w2 = Tensor.rand_init(HIDDEN_SIZE, output_size)
 
     def params(self):
         return [self.w1, self.w2]
