@@ -13,7 +13,8 @@ ALL_LETTERS = string.ascii_letters + ".,;'"
 
 def main():
     names = load_data()
-    num_lang = len(names)
+    langs = list(names.keys())
+    num_lang = len(langs)
     rnn = RNN(len(ALL_LETTERS), num_lang)
 
 class RNN:
