@@ -98,9 +98,17 @@ def load_data():
     return names
 
 def create_training_data(names, langs):
+    # Find minimum number of last names for balancing.
+    min_num = None
+    for lang in names:
+        if min_num is None:
+            min_num = len(names[lang])
+        else:
+            min_num = min(min_num, len(names[lang]))
     retval = []
     for lang in names:
-        for name in names[lang]:
+        random.shuffle(names[lang])
+        for name in names[lang][:min_num]:
             char_tensors = []
             for c in name:
                 t = np.zeros((1, len(ALL_LETTERS)), dtype=np.float32)
