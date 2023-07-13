@@ -11,9 +11,11 @@ from minigrad.tensor import Tensor
 import minigrad.optim as optim
 import random
 import numpy as np
+from tqdm import trange
 
-N_ITERS = 10000
+N_ITERS = 1000000
 ALL_LETTERS = string.ascii_letters + ".,;'"
+BETA = 0.99  # For moving loss and acc.
 
 def main():
     names = load_data()
@@ -22,8 +24,9 @@ def main():
     model = RNN(len(ALL_LETTERS), num_lang)
     training_data = create_training_data(names, langs)
     n_one = Tensor([-1])
-    optimizer = optim.Adam(model.params(), lr=1e-3)
-    for iter in range(N_ITERS):
+    optimizer = optim.Adam(model.params(), lr=1e-7)
+    moving_loss, moving_acc = 0, 0
+    for iter in (t := trange(N_ITERS)):
         i = np.random.randint(0, len(training_data))
         training_example = training_data[i]
         hidden = Tensor(np.zeros((1, 128), dtype=np.float32))
@@ -33,7 +36,15 @@ def main():
         loss = pred.log2().mul(true_y).sum().mul(n_one)
         loss.backward() 
         optimizer.step()
-        print("Loss:", loss.data)
+        # Print stats.
+        pred_label = np.argmax(pred.data)
+        actual_label = np.argmax(true_y.data)
+        acc = 1 if pred_label == actual_label else 0
+        moving_loss = BETA * moving_loss + (1 - BETA) * loss.data[0]
+        moving_acc = BETA * moving_acc + (1 - BETA) * acc
+        moving_loss_corr = moving_loss / (1 - BETA ** (1+iter))
+        moving_acc_corr = moving_acc / (1 - BETA ** (1+iter))
+        t.set_description("Loss: %.5f | Accuracy: %.2f" % (moving_loss_corr, moving_acc_corr))
 
 class RNN:
     def __init__(self, input_size, output_size):

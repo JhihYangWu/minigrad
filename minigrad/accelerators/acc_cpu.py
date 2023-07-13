@@ -105,14 +105,14 @@ class Log2(Function):
     @staticmethod
     def backward(context, your_grad):
         x = context.safe[0]
-        return (your_grad / (x * np.log(2)),)
+        return (your_grad / (x * np.log(2) + 1e-8),)
 register("log2", Log2)
 
 class Softmax(Function):
     @staticmethod
     def forward(context, x, dim):
         s_x = np.exp(x)
-        s_x = s_x / np.sum(s_x, axis=dim).reshape(-1, 1)
+        s_x = s_x / (np.sum(s_x, axis=dim).reshape(-1, 1) + 1e-8)
         context.save_for_backward(s_x)
         return s_x
 
