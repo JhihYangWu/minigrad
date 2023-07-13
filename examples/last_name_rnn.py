@@ -29,7 +29,7 @@ def main():
     for iter in (t := trange(N_ITERS)):
         i = np.random.randint(0, len(training_data))
         training_example = training_data[i]
-        hidden = Tensor(np.zeros((1, 128), dtype=np.float32))
+        hidden = Tensor(np.zeros((1, 256), dtype=np.float32))
         for j in range(len(training_example[0])):
             pred, hidden = model.forward(training_example[0][j], hidden)
         true_y = training_example[1]
@@ -47,9 +47,9 @@ def main():
         t.set_description("Loss: %.5f | Accuracy: %.2f" % (moving_loss_corr, moving_acc_corr))
 
 class RNN:
-    def __init__(self, input_size, output_size):
-        self.w1 = Tensor.rand_init(input_size + 128, 128)
-        self.w2 = Tensor.rand_init(128, output_size)
+    def __init__(self, input_size, output_size, hidden_size=256):
+        self.w1 = Tensor.rand_init(input_size + hidden_size, hidden_size)
+        self.w2 = Tensor.rand_init(hidden_size, output_size)
 
     def params(self):
         return [self.w1, self.w2]
