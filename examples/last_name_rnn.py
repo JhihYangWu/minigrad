@@ -8,17 +8,32 @@ import unicodedata
 import string
 import os
 from minigrad.tensor import Tensor
+import minigrad.optim as optim
 import random
 import numpy as np
 
+N_ITERS = 10000
 ALL_LETTERS = string.ascii_letters + ".,;'"
 
 def main():
     names = load_data()
     langs = list(names.keys())
     num_lang = len(langs)
-    rnn = RNN(len(ALL_LETTERS), num_lang)
+    model = RNN(len(ALL_LETTERS), num_lang)
     training_data = create_training_data(names, langs)
+    n_one = Tensor([-1])
+    optimizer = optim.Adam(model.params(), lr=1e-3)
+    for iter in range(N_ITERS):
+        i = np.random.randint(0, len(training_data))
+        training_example = training_data[i]
+        hidden = Tensor(np.zeros((1, 128), dtype=np.float32))
+        for j in range(len(training_example[0])):
+            pred, hidden = model.forward(training_example[0][j], hidden)
+        true_y = training_example[1]
+        loss = pred.log2().mul(true_y).sum().mul(n_one)
+        loss.backward() 
+        optimizer.step()
+        print("Loss:", loss.data)
 
 class RNN:
     def __init__(self, input_size, output_size):
@@ -31,7 +46,7 @@ class RNN:
     def forward(self, input, hidden):
         combined = input.cat(hidden)
         hidden = combined.matmul(self.w1)
-        output = hidden.matmul(self.w2).softmax()
+        output = hidden.matmul(self.w2).softmax(dim=1)
         return output, hidden
 
 def unicode_to_ascii(s):

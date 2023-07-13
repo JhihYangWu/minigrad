@@ -398,6 +398,19 @@ class BatchNorm1D(Function):
         return g_x, g_gamma, g_beta
 register("batchnorm1d", BatchNorm1D)
 
+class Cat(Function):
+    @staticmethod
+    def forward(context, x, y):
+        out = np.concatenate((x, y), axis=1)
+        context.save_for_backward(x.shape[1])
+        return out
+
+    @staticmethod
+    def backward(context, your_grad):
+        x_len = context.safe[0]
+        return your_grad[:, :x_len], your_grad[:, x_len:]
+register("cat", Cat)
+
 def get_float_32_64():
     return np.float64 if Tensor.NEED_PRECISION else np.float32 
 
