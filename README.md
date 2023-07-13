@@ -39,5 +39,10 @@ optim.train(x_train, y_train, model, optimizer, "CategoricalCrossentropy", steps
 ```
 
 ---
+## RNN Example
+minigrad can be used to train RNNs. Check out last_name_rnn.py in examples folder.
+![rnn_example](/imgs/rnn_example.png)
+
+---
 ## Final Notes
 minigrad is not meant to be used in production as it is very slow and may be unreliable. However, it is great for learning how neural networks and all the optimization techniques work from scratch. Lastly, I would like to thank George Hotz and Andrew Ng as I wouldn't have been able to create this project without them.
