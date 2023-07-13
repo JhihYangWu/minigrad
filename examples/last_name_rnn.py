@@ -13,7 +13,7 @@ import random
 import numpy as np
 from tqdm import trange
 
-N_ITERS = 1000000
+N_ITERS = 40000
 ALL_LETTERS = string.ascii_letters + ".,;'"
 BETA = 0.99  # For moving loss and acc.
 
