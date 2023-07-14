@@ -15,7 +15,7 @@ from tqdm import trange
 
 N_ITERS = 500
 ALL_LETTERS = string.ascii_letters + ".,;'"
-BETA = 0.99  # For moving loss and acc.
+BETA = 0.95  # For moving loss and acc.
 BATCH_SIZE = 256
 HIDDEN_SIZE = 256
 
@@ -77,14 +77,16 @@ class RNN:
     def __init__(self, input_size, output_size):
         self.w1 = Tensor.rand_init(input_size + HIDDEN_SIZE, HIDDEN_SIZE)
         self.w2 = Tensor.rand_init(HIDDEN_SIZE, output_size)
+        self.b1 = Tensor.rand_init(1, HIDDEN_SIZE)
+        self.b2 = Tensor.rand_init(1, output_size)
 
     def params(self):
         return [self.w1, self.w2]
 
     def forward(self, input, hidden):
         combined = input.cat(hidden)
-        hidden = combined.matmul(self.w1)
-        output = hidden.matmul(self.w2).softmax(dim=1)
+        hidden = combined.matmul(self.w1).add(self.b1).tanh()
+        output = hidden.matmul(self.w2).add(self.b2).softmax(dim=1)
         return output, hidden
 
 def unicode_to_ascii(s):
