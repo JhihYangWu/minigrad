@@ -46,18 +46,22 @@ class Tensor:
         return Tensor(vals.astype(np.float32))
 
     def backward(self, user_called=True, want_zero_grads=True):
-        def zero_grads(t):
+        def zero_grads(t, visited=set()):
             if t.grad is None:
                 t.grad = Tensor(np.zeros(t.data.shape, dtype=t.data.dtype))
             else:
                 t.grad.data[:] = 0
             if t._context is not None:
                 for p_t in t._context.parents:
-                    zero_grads(p_t)
-        def find_topological_order(t, ordered_list, in_list):
+                    if p_t not in visited:
+                        visited.add(p_t)
+                        zero_grads(p_t, visited)
+        def find_topological_order(t, ordered_list, in_list, visited=set()):
             if t._context is not None:
                 for p_t in t._context.parents:
-                    find_topological_order(p_t, ordered_list, in_list)
+                    if p_t not in visited:
+                        visited.add(p_t)
+                        find_topological_order(p_t, ordered_list, in_list, visited)
             if t not in in_list:
                 ordered_list.append(t)
                 in_list.add(t)
