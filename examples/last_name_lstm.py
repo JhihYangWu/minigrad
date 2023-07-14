@@ -1,0 +1,149 @@
+# Showcase how minigrad can be used to recognize which language a last name is in.
+# Based off of https://pytorch.org/tutorials/intermediate/char_rnn_classification_tutorial.html
+
+# Download training data from https://download.pytorch.org/tutorial/data.zip
+# and put names folder from data.zip next to this script.
+
+import unicodedata
+import string
+import os
+from minigrad.tensor import Tensor
+import minigrad.optim as optim
+import random
+import numpy as np
+from tqdm import trange
+
+N_ITERS = 500
+ALL_LETTERS = string.ascii_letters + ".,;'"
+BETA = 0.95  # For moving loss and acc.
+BATCH_SIZE = 256
+HIDDEN_SIZE = 256
+
+def main():
+    names = load_data()
+    langs = list(names.keys())
+    num_lang = len(langs)
+    model = LSTM(len(ALL_LETTERS), num_lang)
+    training_data = create_training_data(names, langs)
+    n_one = Tensor([-1])
+    optimizer = optim.Adam(model.params(), lr=1e-3)
+    moving_loss, moving_acc = 0, 0
+    for iter in (t := trange(N_ITERS)):
+        for b in range(BATCH_SIZE):
+            i = np.random.randint(0, len(training_data))
+            training_example = training_data[i]
+            memory = Tensor(np.zeros((1, HIDDEN_SIZE), dtype=np.float32))
+            activation = Tensor(np.zeros((1, HIDDEN_SIZE), dtype=np.float32))
+            for j in range(len(training_example[0])):
+                pred, memory, activation = model.forward(training_example[0][j], memory, activation)
+            true_y = training_example[1]
+            loss = pred.log2().mul(true_y).sum().mul(n_one)
+            loss.backward(want_zero_grads=b == 0) 
+        optimizer.step()
+        # Print stats.
+        pred_label = np.argmax(pred.data)
+        actual_label = np.argmax(true_y.data)
+        acc = 1 if pred_label == actual_label else 0
+        moving_loss = BETA * moving_loss + (1 - BETA) * loss.data[0]
+        moving_acc = BETA * moving_acc + (1 - BETA) * acc
+        moving_loss_corr = moving_loss / (1 - BETA ** (1+iter))
+        moving_acc_corr = moving_acc / (1 - BETA ** (1+iter))
+        t.set_description("Loss: %.5f | Accuracy: %.2f" % (moving_loss_corr, moving_acc_corr))
+    # Play with model.
+    while True:
+        user_input = ""
+        while user_input == "":
+            user_input = input("Enter a last name: ")
+            user_input = unicode_to_ascii(user_input.strip().lower().capitalize())
+        tensors = []
+        for c in user_input:
+            t = np.zeros((1, len(ALL_LETTERS)), dtype=np.float32)
+            t[0, ALL_LETTERS.index(c)] = 1
+            t = Tensor(t)
+            tensors.append(t)
+        memory = Tensor(np.zeros((1, HIDDEN_SIZE), dtype=np.float32))
+        activation = Tensor(np.zeros((1, HIDDEN_SIZE), dtype=np.float32))
+        for t in tensors:
+            pred, memory, activation = model.forward(t, memory, activation)
+        pred = pred.data[0]
+        print(f"Prediction for {user_input}: ", end="")
+        for _ in range(3):
+            i = np.argmax(pred)
+            conf = round(pred[i] * 100, 2)
+            print(f"{langs[i]} {conf}% | ", end="")
+            pred[i] = -1
+        print()
+        print()
+
+class LSTM:
+    def __init__(self, input_size, output_size):
+        self.w_c = Tensor.rand_init(input_size + HIDDEN_SIZE, HIDDEN_SIZE)
+        self.w_u = Tensor.rand_init(input_size + HIDDEN_SIZE, HIDDEN_SIZE)
+        self.w_f = Tensor.rand_init(input_size + HIDDEN_SIZE, HIDDEN_SIZE)
+        self.w_o = Tensor.rand_init(input_size + HIDDEN_SIZE, HIDDEN_SIZE)
+        self.b_c = Tensor.rand_init(1, HIDDEN_SIZE)
+        self.b_u = Tensor.rand_init(1, HIDDEN_SIZE)
+        self.b_f = Tensor.rand_init(1, HIDDEN_SIZE)
+        self.b_o = Tensor.rand_init(1, HIDDEN_SIZE)
+        self.w_pred = Tensor.rand_init(HIDDEN_SIZE, output_size)
+        self.b_pred = Tensor.rand_init(1, output_size)
+
+    def params(self):
+        return [self.w_c, self.w_u, self.w_f, self.w_o,
+                self.b_c, self.b_u, self.b_f, self.b_o,
+                self.w_pred, self.b_pred]
+
+    def forward(self, input, prev_memory, prev_activation):
+        combined = prev_activation.cat(input)
+        c_tilde = combined.matmul(self.w_c).add(self.b_c).tanh()
+        update_gate = combined.matmul(self.w_u).add(self.b_u).sigmoid()
+        forget_gate = combined.matmul(self.w_f).add(self.b_f).sigmoid()
+        output_gate = combined.matmul(self.w_o).add(self.b_o).sigmoid()
+        new_memory = update_gate.mul(c_tilde).add(forget_gate.mul(prev_memory))
+        new_activation = new_memory.tanh().mul(output_gate)
+        pred = new_activation.matmul(self.w_pred).add(self.b_pred).softmax(dim=1)
+        return pred, new_memory, new_activation
+
+def unicode_to_ascii(s):
+    return "".join(
+        c for c in unicodedata.normalize("NFD", s)
+        if unicodedata.category(c) != "Mn" and c in ALL_LETTERS
+    )
+
+def load_data():
+    names = {}
+    for file in os.listdir("names/"):
+        if file.endswith(".txt"):
+            language = file[:-4]
+            lines = open("names/" + file, encoding="utf-8").read().strip().split("\n")
+            names[language] = [unicode_to_ascii(n) for n in lines]
+    return names
+
+def create_training_data(names, langs):
+    # Find minimum number of last names for balancing.
+    min_num = None
+    for lang in names:
+        if min_num is None:
+            min_num = len(names[lang])
+        else:
+            min_num = min(min_num, len(names[lang]))
+    retval = []
+    for lang in names:
+        random.shuffle(names[lang])
+        for name in names[lang][:min_num*2]:  # *2 for slightly unbalanced training data.
+            char_tensors = []
+            for c in name:
+                t = np.zeros((1, len(ALL_LETTERS)), dtype=np.float32)
+                t[0, ALL_LETTERS.index(c)] = 1
+                t = Tensor(t)
+                char_tensors.append(t)
+            output_tensor = np.zeros((1, len(langs)), dtype=np.float32)
+            output_tensor[0, langs.index(lang)] = 1
+            output_tensor = Tensor(output_tensor)
+            retval.append((char_tensors, output_tensor))
+    random.shuffle(retval)
+    return retval
+
+if __name__ == "__main__":
+    main()
+
