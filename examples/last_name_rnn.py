@@ -121,7 +121,7 @@ def create_training_data(names, langs):
     retval = []
     for lang in names:
         random.shuffle(names[lang])
-        for name in names[lang][:min_num*2]:
+        for name in names[lang][:min_num*2]:  # *2 for slightly unbalanced training data.
             char_tensors = []
             for c in name:
                 t = np.zeros((1, len(ALL_LETTERS)), dtype=np.float32)
