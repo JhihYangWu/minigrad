@@ -45,7 +45,7 @@ class Tensor:
         vals = np.random.uniform(-1.0, 1.0, size=shape) / np.sqrt(np.prod(shape))
         return Tensor(vals.astype(np.float32))
 
-    def backward(self, user_called=True):
+    def backward(self, user_called=True, want_zero_grads=True):
         def zero_grads(t):
             if t.grad is None:
                 t.grad = Tensor(np.zeros(t.data.shape, dtype=t.data.dtype))
@@ -67,7 +67,8 @@ class Tensor:
 
         if user_called:
             assert self.data.shape == (1,)  # Make sure loss is a single number.
-            zero_grads(self)
+            if want_zero_grads:
+                zero_grads(self)
             self.grad = Tensor(np.ones(self.data.shape, dtype=self.data.dtype))
             ordered_list = []
             find_topological_order(self, ordered_list, set())
@@ -78,6 +79,8 @@ class Tensor:
         for p, g in zip(self._context.parents, parent_grads):
             if g.shape != p.data.shape:
                 raise ValueError(f"Computed grad doesn't match data's shape. {g.shape} != {p.data.shape}.")
+            if p.grad is None:
+                p.grad = Tensor(np.zeros(p.data.shape, dtype=p.data.dtype))
             p.grad.data += g
 
 class Context:

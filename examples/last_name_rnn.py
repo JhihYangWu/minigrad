@@ -29,8 +29,6 @@ def main():
     optimizer = optim.Adam(model.params(), lr=1e-3)
     moving_loss, moving_acc = 0, 0
     for iter in (t := trange(N_ITERS)):
-        g_w1s = np.zeros((BATCH_SIZE,) + model.w1.data.shape, np.float32)
-        g_w2s = np.zeros((BATCH_SIZE,) + model.w2.data.shape, np.float32)
         for b in range(BATCH_SIZE):
             i = np.random.randint(0, len(training_data))
             training_example = training_data[i]
@@ -39,13 +37,7 @@ def main():
                 pred, hidden = model.forward(training_example[0][j], hidden)
             true_y = training_example[1]
             loss = pred.log2().mul(true_y).sum().mul(n_one)
-            loss.backward() 
-            g_w1s[b] = model.w1.grad.data
-            g_w2s[b] = model.w2.grad.data
-        g_w1 = g_w1s.sum(axis=0)
-        g_w2 = g_w2s.sum(axis=0)
-        model.w1.grad.data = g_w1
-        model.w2.grad.data = g_w2
+            loss.backward(want_zero_grads=b == 0) 
         optimizer.step()
         # Print stats.
         pred_label = np.argmax(pred.data)
