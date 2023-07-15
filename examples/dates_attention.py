@@ -25,6 +25,16 @@ FK_FORMATS = ["short",
 
 def main():
     faker = Faker()
+    x_train, y_train = gen_dataset(50000, faker)
+    x_test, y_test = gen_dataset(1000, faker)
+
+def gen_dataset(m, faker):
+    xs, ys = [], []
+    for i in range(m):
+        x, y = random_date(faker)
+        xs.append(x)
+        ys.append(y)
+    return xs, ys
 
 def random_date(faker):
     dt = faker.date_object()
