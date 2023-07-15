@@ -411,6 +411,25 @@ class Cat(Function):
         return your_grad[:, :x_len], your_grad[:, x_len:]
 register("cat", Cat)
 
+# This op has not been tested extensively.
+class BroadcastTo(Function):
+    @staticmethod
+    def forward(context, x, shape=None):
+        assert len(x.shape) == len(shape)
+        context.save_for_backward(x.shape)
+        return np.broadcast_to(x, shape)
+
+    @staticmethod
+    def backward(context, your_grad):
+        x_shape = context.safe[0]
+        assert len(x_shape) == len(your_grad.shape)
+        retval = your_grad
+        for axis in range(len(x_shape)):
+            if x_shape[axis] != your_grad.shape[axis]:
+                retval = retval.sum(axis=axis, keepdims=True)
+        return (retval,)
+register("broadcast_to", BroadcastTo)
+
 def get_float_32_64():
     return np.float64 if Tensor.NEED_PRECISION else np.float32 
 
