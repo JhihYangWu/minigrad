@@ -12,6 +12,9 @@
 from faker import Faker
 from babel.dates import format_date
 import random
+import numpy as np
+from minigrad.tensor import Tensor
+import minigrad.optim as optim
 
 FK_FORMATS = ["short",
               "medium", "medium", "medium",
@@ -27,12 +30,82 @@ BOT_H_SIZE = 64  # Hidden size for bottom LSTMs.
 ATT_H_SIZE = 32  # Hidden size for small attention NN.
 HUMAN_VOCAB = [" ", "/", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"]
 MACHINE_VOCAB = ["-", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+LEARNING_RATE = 1e-3
 
 def main():
     faker = Faker()
     x_train, y_train = gen_dataset(50000, faker)
     x_test, y_test = gen_dataset(1000, faker)
+    # Create two bottom LSTMs for bidirectional.
+    rightward = BOT_LSTM(len(HUMAN_VOCAB))
+    leftward = BOT_LSTM(len(HUMAN_VOCAB))
+    small_nn = ATT_NN()
+    main_lstm = TOP_LSTM(len(MACHINE_VOCAB))
+    rightward_optim = optim.Adam(rightward.params(), lr=LEARNING_RATE)
+    leftward_optim = optim.Adam(leftward.params(), lr=LEARNING_RATE)
+    small_nn_optim = optim.Adam(small_nn.params(), lr=LEARNING_RATE)
+    main_lstim_optim = optim.Adam(main_lstm.params(), lr=LEARNING_RATE)
+    n_one = Tensor([-1])
 
+    # Do one iter.
+    x = cvt_to_tensors(x_train[0], HUMAN_VOCAB)
+    y = cvt_to_tensors(y_train[0], MACHINE_VOCAB)
+    right_mem = Tensor.zeros(1, BOT_H_SIZE)
+    right_act = Tensor.zeros(1, BOT_H_SIZE)
+    left_mem = Tensor.zeros(1, BOT_H_SIZE)
+    left_act = Tensor.zeros(1, BOT_H_SIZE)
+    # Compute bottom activations.
+    bot_activations = [[None, None] for _ in range(len(x))]
+    for i in range(len(x)):
+        right_mem, right_act = rightward.forward(x[i], right_mem, right_act)
+        left_mem, left_act = leftward.forward(x[-1-i], left_mem, left_act)
+        bot_activations[i][0] = right_act
+        bot_activations[-1-i][1] = left_act
+    # Combine bot_activations.
+    bot_activations = [pair[0].cat(pair[1]) for pair in bot_activations]
+    # Start running top LSTM.
+    top_mem = Tensor.zeros(1, TOP_H_SIZE)
+    top_act = Tensor.zeros(1, TOP_H_SIZE)
+    top_prev_pred = Tensor.zeros(1, len(MACHINE_VOCAB))
+    loss = Tensor.zeros(1)
+    for i in range(10):  # Top LSTM will always generate 10 outputs because isoformat.
+        # Calc attention for each of bottom activations.
+        attentions = []
+        sum_attentions = Tensor.zeros(1, 1)
+        for j in range(len(bot_activations)):
+            attentions.append(small_nn.forward(top_act, bot_activations[j]).exp2())
+            sum_attentions = sum_attentions.add(attentions[-1])
+        # Use attentions and bot_activations to create single bot_activation.
+        bot_activation = Tensor.zeros(1, 2*BOT_H_SIZE)
+        for j in range(len(bot_activations)):
+            bot_activation = bot_activation.add(attentions[j].div(sum_attentions).broadcast_to(shape=bot_activations[j].shape).mul(bot_activations[j]))
+        # Output a tensor.
+        pred, top_mem, top_act = main_lstm.forward(top_prev_pred, bot_activation, top_mem, top_act)
+        # Compare pred to true value to compute loss.
+        this_loss = pred.log2().mul(y[i]).sum().mul(n_one)
+        loss = loss.add(this_loss)
+        top_prev_pred = pred
+    # Backprop.
+    loss.backward()
+    rightward_optim.step()
+    leftward_optim.step()
+    small_nn_optim.step()
+    main_lstim_optim.step()
+    # Print stats.
+    print("Loss:", loss.data[0])
+
+def cvt_to_tensors(string, vocab):
+    retval = []
+    for char in string:
+        retval.append(cvt_to_tensor(char, vocab))
+    return retval
+
+def cvt_to_tensor(char, vocab): 
+    t = np.zeros((1, len(vocab)), dtype=np.float32)
+    t[0, vocab.index(char)] = 1
+    t = Tensor(t)
+    return t
+    
 class ATT_NN:
     def __init__(self):
         self.w1 = Tensor.rand_init(TOP_H_SIZE + 2*BOT_H_SIZE, ATT_H_SIZE)
