@@ -29,7 +29,7 @@ def main():
     x_train, y_train = gen_dataset(50000, faker)
     x_test, y_test = gen_dataset(1000, faker)
 
-class BOTTOM_LSTM:
+class BOT_LSTM:
     def __init__(self, input_size):
         self.w_c = Tensor.rand_init(input_size + BOT_H_SIZE, BOT_H_SIZE)
         self.w_u = Tensor.rand_init(input_size + BOT_H_SIZE, BOT_H_SIZE)
