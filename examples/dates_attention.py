@@ -6,8 +6,32 @@
 # Example input: feb 5 2002
 # Expected output: 2002-02-05
 
+# pip3 install Faker
+# pip3 install Babel
+
+from faker import Faker
+from babel.dates import format_date
+import random
+
+FK_FORMATS = ["short",
+              "medium", "medium", "medium",
+              "long", "long", "long", "long", "long",
+              "full", "full", "full",
+              "d MMM YYY",
+              "d MMMM YYY", "d MMMM YYY", "d MMMM YYY", "d MMMM YYY", "d MMMM YYY",
+              "dd/MM/YYY",
+              "EE d, MMM YYY",
+              "EEEE d, MMMM YYY"]
+
 def main():
-    pass
+    faker = Faker()
+
+def random_date(faker):
+    dt = faker.date_object()
+    date = format_date(dt, format=random.choice(FK_FORMATS), locale="en")
+    human_format = date.lower().replace(",", "")
+    machine_format = dt.isoformat()
+    return human_format, machine_format
 
 if __name__ == "__main__":
     main()
