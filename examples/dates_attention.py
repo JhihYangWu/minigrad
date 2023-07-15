@@ -25,6 +25,8 @@ FK_FORMATS = ["short",
 TOP_H_SIZE = 128  # Hidden size for top LSTM.
 BOT_H_SIZE = 64  # Hidden size for bottom LSTMs.
 ATT_H_SIZE = 32  # Hidden size for small attention NN.
+HUMAN_VOCAB = [" ", "/", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"]
+MACHINE_VOCAB = ["-", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 
 def main():
     faker = Faker()
