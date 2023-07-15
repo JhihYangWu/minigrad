@@ -22,12 +22,42 @@ FK_FORMATS = ["short",
               "dd/MM/YYY",
               "EE d, MMM YYY",
               "EEEE d, MMMM YYY"]
+TOP_H_SIZE = 128  # Hidden size for top LSTM.
 BOT_H_SIZE = 128  # Hidden size for bottom LSTMs.
 
 def main():
     faker = Faker()
     x_train, y_train = gen_dataset(50000, faker)
     x_test, y_test = gen_dataset(1000, faker)
+
+class TOP_LSTM:
+    def __init__(self, output_size):
+        self.w_c = Tensor.rand_init(output_size + 2*BOT_H_SIZE + TOP_H_SIZE, TOP_H_SIZE)
+        self.w_u = Tensor.rand_init(output_size + 2*BOT_H_SIZE + TOP_H_SIZE, TOP_H_SIZE)
+        self.w_f = Tensor.rand_init(output_size + 2*BOT_H_SIZE + TOP_H_SIZE, TOP_H_SIZE)
+        self.w_o = Tensor.rand_init(output_size + 2*BOT_H_SIZE + TOP_H_SIZE, TOP_H_SIZE)
+        self.b_c = Tensor.rand_init(1, TOP_H_SIZE)
+        self.b_u = Tensor.rand_init(1, TOP_H_SIZE)
+        self.b_f = Tensor.rand_init(1, TOP_H_SIZE)
+        self.b_o = Tensor.rand_init(1, TOP_H_SIZE)
+        self.w_pred = Tensor.rand_init(TOP_H_SIZE, output_size)
+        self.b_pred = Tensor.rand_init(1, output_size)
+        
+    def params(self):
+        return [self.w_c, self.w_u, self.w_f, self.w_o,
+                self.b_c, self.b_u, self.b_f, self.b_o,
+                self.w_pred, self.b_pred]
+
+    def forward(self, prev_output, bot_activation, prev_memory, prev_activation):
+        combined = prev_output.cat(bot_activation).cat(prev_activation)
+        c_tilde = combined.matmul(self.w_c).add(self.b_c).tanh()
+        update_gate = combined.matmul(self.w_u).add(self.b_u).sigmoid()
+        forget_gate = combined.matmul(self.w_f).add(self.b_f).sigmoid()
+        output_gate = combined.matmul(self.w_o).add(self.b_o).sigmoid()
+        new_memory = update_gate.mul(c_tilde).add(forget_gate.mul(prev_memory))
+        new_activation = new_memory.tanh().mul(output_gate)
+        pred = new_activation.matmul(self.w_pred).add(self.b_pred).softmax(dim=1)
+        return pred, new_memory, new_activation
 
 class BOT_LSTM:
     def __init__(self, input_size):
