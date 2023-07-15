@@ -23,12 +23,29 @@ FK_FORMATS = ["short",
               "EE d, MMM YYY",
               "EEEE d, MMMM YYY"]
 TOP_H_SIZE = 128  # Hidden size for top LSTM.
-BOT_H_SIZE = 128  # Hidden size for bottom LSTMs.
+BOT_H_SIZE = 64  # Hidden size for bottom LSTMs.
+ATT_H_SIZE = 32  # Hidden size for small attention NN.
 
 def main():
     faker = Faker()
     x_train, y_train = gen_dataset(50000, faker)
     x_test, y_test = gen_dataset(1000, faker)
+
+class ATT_NN:
+    def __init__(self):
+        self.w1 = Tensor.rand_init(TOP_H_SIZE + 2*BOT_H_SIZE, ATT_H_SIZE)
+        self.b1 = Tensor.rand_init(1, ATT_H_SIZE)
+        self.w2 = Tensor.rand_init(ATT_H_SIZE, 1)
+        self.b2 = Tensor.rand_init(1, 1)
+
+    def params(self):
+        return [self.w1, self.b1,
+                self.w2, self.b2]
+
+    def forward(self, top_hidden, bot_activation):
+        combined = top_hidden.cat(bot_activation)
+        e = combined.matmul(self.w1).add(self.b1).relu().matmul(self.w2).add(self.b2)
+        return e
 
 class TOP_LSTM:
     def __init__(self, output_size):
