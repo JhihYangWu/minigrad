@@ -32,8 +32,8 @@ ATT_H_SIZE = 32  # Hidden size for small attention NN.
 HUMAN_VOCAB = [" ", "/", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"]
 MACHINE_VOCAB = ["-", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 LEARNING_RATE = 1e-3
-BATCH_SIZE = 32
-N_ITERS = 10000
+BATCH_SIZE = 64
+N_ITERS = 5000
 BETA = 0.99  # For moving loss and acc.
 
 def main():
