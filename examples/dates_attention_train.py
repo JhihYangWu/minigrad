@@ -105,6 +105,16 @@ def main():
         main_lstim_optim.step()
         # Print stats.
         t.set_description("Loss: %.5f | Accuracy: %.2f" % (moving_loss, moving_acc))
+    # Save model.
+    print("Saving model.")
+    import pickle, os
+    if not os.path.isdir("dates_attention_trained"):
+        os.mkdir("dates_attention_trained")
+    pickle.dump(rightward, open("dates_attention_trained/rightward.pickle", "wb"))
+    pickle.dump(leftward, open("dates_attention_trained/leftward.pickle", "wb"))
+    pickle.dump(small_nn, open("dates_attention_trained/small_nn.pickle", "wb"))
+    pickle.dump(main_lstm, open("dates_attention_trained/main_lstm.pickle", "wb"))
+    print("Saved model.")
 
 def cvt_to_tensors(string, vocab):
     retval = []
