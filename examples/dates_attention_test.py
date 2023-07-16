@@ -15,7 +15,7 @@ def main():
     faker = Faker()
     while True:
         human_str, expected_str = random_date(faker)
-        print("Input:", human_str)
+        print("Input           :", human_str)
         print("Expected  Output:", expected_str)
         print("Predicted Output: ", end="", flush=True)
         
